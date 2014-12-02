@@ -64,6 +64,16 @@ static void setupPins() {
     
 }
 
+static int rawBrightness() {
+
+    int actualBrightness = 255.0 * (float)brightness/100.0;
+    if(actualBrightness < 10) actualBrightness = 10;
+    // analogWrite(PIN::LCD_BACKLIGHT, actualBrightness);
+
+    return actualBrightness;
+    
+}
+
 public:
 
 PiWatch() {}
@@ -117,19 +127,19 @@ static void rampBrightness(bool dir) {
     if(dir) {
 
         // Take about 1/4 of a second to fade in
-        for(int i=0;i<=brightness;i+=speed) {
+        for(int i=0;i<=rawBrightness();i+=speed) {
         
             analogWrite(LCD_BACKLIGHT, i);
             delay(1);
             
         }
         
-        analogWrite(LCD_BACKLIGHT, brightness);
+        analogWrite(LCD_BACKLIGHT, rawBrightness());
         
     } else {
 
         // Take about 1/4 of a second to fade out
-        for(int i=brightness;i>=0;i-=speed) {
+        for(int i=rawBrightness();i>=0;i-=speed) {
         
             analogWrite(LCD_BACKLIGHT, i);
             delay(1);
@@ -144,19 +154,15 @@ static void rampBrightness(bool dir) {
 
 static void setBrightness(int value) {
 
-    if(value != brightness) {
+    Serial.printf("setBrightness %d %d\r\n",value,brightness);
+
+    if(value > 100) value = 100;
+    if(value < 0) value = 0;
+
+    brightness = value;
+
+    analogWrite(PIN::LCD_BACKLIGHT, rawBrightness());
     
-        brightness = value;
-
-        if(brightness > 100) brightness = 100;
-        if(brightness < 0) brightness = 0;
-        
-        brightness = 255.0 * (float)brightness/100.0;
-        if(brightness < 10) brightness = 10;
-        analogWrite(PIN::LCD_BACKLIGHT, brightness);
-        
-    }
-
 }
 
 static int getBrightness() {
