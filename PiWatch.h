@@ -2,6 +2,9 @@
 #ifndef PI_WATCH_
 #define PI_WATCH_
 
+#define ON  1
+#define OFF 0
+
 namespace PIN { // Pin definitions
 
     int const
@@ -15,9 +18,9 @@ namespace PIN { // Pin definitions
     // Digital Out
     SD_CHIP_SELECT    = 30,
     SYSTEM_POWER      = 31,
-    VIBRATOR          = 3,
+    VIBRATOR          =  3,
     AMPLIFIER_ENABLE  = 24;
-
+    
 }
 
 class PiWatch {
@@ -46,15 +49,15 @@ static void setupPins() {
     // System Power [drop this to shut off]
     pinMode(SYSTEM_POWER, OUTPUT);
     digitalWrite(SYSTEM_POWER, HIGH);
-    
+
     // Speaker amplifier
     pinMode(AMPLIFIER_ENABLE, OUTPUT);
-    digitalWrite(AMPLIFIER_ENABLE, HIGH);
+    digitalWrite(AMPLIFIER_ENABLE, LOW);
 
     // Backlight
     pinMode(LCD_BACKLIGHT, OUTPUT);
     digitalWrite(LCD_BACKLIGHT, LOW);
-    
+
     // Power Button
     pinMode(POWER_BUTTON,INPUT);
     
@@ -125,7 +128,7 @@ static void rampBrightness(bool dir) {
     int const speed = 2;
     
     if(dir) {
-
+    
         // Take about 1/4 of a second to fade in
         for(int i=0;i<=rawBrightness();i+=speed) {
         
@@ -168,6 +171,13 @@ static void setBrightness(int value) {
 static int getBrightness() {
 
     return brightness;
+
+}
+
+static int speaker(bool value) {
+
+    pinMode(PIN::AMPLIFIER_ENABLE, OUTPUT);
+    digitalWrite(PIN::AMPLIFIER_ENABLE, value);
 
 }
 
