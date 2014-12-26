@@ -2,8 +2,22 @@
 #ifndef PI_WATCH_
 #define PI_WATCH_
 
+#include <Arduino.h>
+
+#define db Serial
+
+#define HARDWARE_REVA 0
+#define HARDWARE_REVB 1
+
 #define ON  1
 #define OFF 0
+
+#define UP   1
+#define DOWN 0
+
+volatile int hVer = 1;
+#include "PiScreen.h"
+#include "PiTouch.h"
 
 namespace PIN { // Pin definitions
 
@@ -23,13 +37,13 @@ namespace PIN { // Pin definitions
     
 }
 
-class PiWatch {
+class PiWatch : public PiScreen, public PiTouch {
 
 private:
 
 static IntervalTimer vibrateTimer;
 static bool vibrateState;
-static int brightness;
+int brightness = 100;
 
 static void vibrateOffISR() {
 
@@ -67,7 +81,7 @@ static void setupPins() {
     
 }
 
-static int rawBrightness() {
+int rawBrightness() {
 
     int actualBrightness = 255.0 * (float)brightness/100.0;
     if(actualBrightness < 10) actualBrightness = 10;
@@ -81,13 +95,30 @@ public:
 
 PiWatch() {}
 
-static void init() {
+static void init(void (*tmpTouchCallback)(int,int,int,int)) {
 
+    hVer = EEPROM.read(0);
+    #ifdef db
+        db.printf("hardware %d %s\r\n",hVer,hVer == 0 ? "REVA" : "REVB");
+    #endif
+    if(hVer != HARDWARE_REVA && hVer != HARDWARE_REVB) hVer = HARDWARE_REVB;
+    
     setupPins();
+    
+    touchInit(tmpTouchCallback);
+    
+    InitLCD();
+    
+}
+
+void setOrientation(int tmpOrient) {
+
+    setTouchOrientation(tmpOrient);
+    setLcdOrientation(tmpOrient);
 
 }
 
-static void powerDown() {
+void powerDown() {
 
     // delay(2000);
     
@@ -103,7 +134,7 @@ static void powerDown() {
 
 }
 
-static void vibrate(int millisTime) {
+void vibrate(int millisTime) {
 
     pinMode(PIN::VIBRATOR, OUTPUT);
     digitalWrite(PIN::VIBRATOR, HIGH);
@@ -114,14 +145,14 @@ static void vibrate(int millisTime) {
     
 }
 
-static bool getVibrateState() {
+bool getVibrateState() {
 
     return vibrateState;
 
 }
 
 // TODO: Make this non blocking
-static void rampBrightness(bool dir) {
+void rampBrightness(bool dir) {
 
     using namespace PIN;
     
@@ -155,7 +186,7 @@ static void rampBrightness(bool dir) {
     
 }
 
-static void setBrightness(int value) {
+void setBrightness(int value) {
 
     Serial.printf("setBrightness %d %d\r\n",value,brightness);
 
@@ -168,13 +199,13 @@ static void setBrightness(int value) {
     
 }
 
-static int getBrightness() {
+int getBrightness() {
 
     return brightness;
 
 }
 
-static int speaker(bool value) {
+int speaker(bool value) {
 
     pinMode(PIN::AMPLIFIER_ENABLE, OUTPUT);
     digitalWrite(PIN::AMPLIFIER_ENABLE, value);
@@ -185,8 +216,8 @@ static int speaker(bool value) {
 
 IntervalTimer PiWatch::vibrateTimer;
 
-int PiWatch::brightness = 100;
-
 bool PiWatch::vibrateState = false;
+
+#undef db
 
 #endif
