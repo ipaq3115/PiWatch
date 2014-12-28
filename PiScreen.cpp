@@ -1,6 +1,13 @@
 
-#include "PiScreen.h"
 #include <pins_arduino.h>
+#include "PiScreen.h"
+
+#ifdef USE_SDFAT
+#else
+    #define SdFile File
+    #define seekSet seek
+    #define sync flush
+#endif
 
 // Use this to send the the debug to the desired
 // Comment it out to compile without debug statements
@@ -8,6 +15,7 @@
 
 byte                PiScreen::orient;
 _current_font       PiScreen::cfont;
+long PiScreen::disp_x_size, PiScreen::disp_y_size;
 bool                PiScreen::_transparent;
 byte                PiScreen::fch, PiScreen::fcl, PiScreen::bch, PiScreen::bcl;
 
@@ -152,7 +160,8 @@ void PiScreen::InitLCD(byte orientation) {
     
     setColor(255, 255, 255);
     setBackColor(0, 0, 0);
-    cfont.font = 0;
+    // cfont.font = 0;
+    setFont(BigFont);
     _transparent = false;
     setEntryMode(TOP_LEFT);
     
@@ -160,8 +169,10 @@ void PiScreen::InitLCD(byte orientation) {
 
 void PiScreen::setXY(word x1, word y1, word x2, word y2) {
 
-    // Serial.printf("setXY %d %d %d %d\r\n",x1, y1, x2, y2); delay(10);
-
+    #ifdef db
+        db.printf("setXY %d %d %d %d\r\n",x1, y1, x2, y2);
+    #endif
+    
     switch(entryMode) {
     
         case TOP_LEFT:      gotoXY(x1,y1); break;
@@ -171,8 +182,6 @@ void PiScreen::setXY(word x1, word y1, word x2, word y2) {
     
     }
     
-    // Serial.printf("setXY %d %d %d %d\r\n",x1, y1, x2, y2); delay(10);
-
     if(orient == LANDSCAPE) {
     
         swap(word, x1, y1);
@@ -236,10 +245,12 @@ void PiScreen::setXY(word x1, word y1, word x2, word y2) {
         
     }
 
-    // Serial.printf("setXY %d %d %d %d\r\n",x1, y1, x2, y2);
-    
     x1 += 10;
     x2 += 10;
+    
+    #ifdef db
+        db.printf("setXY B %d %d %d %d\r\n",x1, y1, x2, y2);
+    #endif
     
     LCD_Write_COM_DATA(0x50,x1);
     LCD_Write_COM_DATA(0x52,y1);
@@ -254,8 +265,10 @@ void PiScreen::setEntryMode(lcd_corner_start id) {
 
     static int lastOrient = -1;
 
-    // if(D) { Serial.printf("setEntryMode %d %s\r\n",id,entryStrings[id]); delay(10); }
-
+    // #ifdef db
+    //     db.printf("setEntryMode %d %s\r\n",id,entryStrings[id]);
+    // #endif
+    
     if(entryMode == id && orient == lastOrient) return;
     
     lastOrient = orient;
@@ -319,6 +332,10 @@ void PiScreen::setEntryMode(lcd_corner_start id) {
 
 void PiScreen::gotoXY(word x0,word y0) {
 
+    #ifdef db
+        db.printf("gotoXY %d %d\r\n",x0, y0);
+    #endif
+    
     if(orient == PORTRAIT_R) {
     
         x0 = disp_x_size - x0;
@@ -336,6 +353,10 @@ void PiScreen::gotoXY(word x0,word y0) {
     
     }
 
+    #ifdef db
+        db.printf("gotoXY B %d %d\r\n",x0, y0);
+    #endif
+    
     LCD_Write_COM_DATA(0x20,x0 + 10);
     LCD_Write_COM_DATA(0x21,y0);
 
@@ -818,6 +839,8 @@ void PiScreen::print(char *st, int x, int y, int deg) {
     int stl, i;
 
     stl = strlen(st);
+    
+    if(y == CENTER) y = disp_y_size / 2 - cfont.x_size / 2;
 
     if (x == RIGHT)  x =  (disp_x_size + 1) - (stl * cfont.x_size);
     if (x == CENTER) x = ((disp_x_size + 1) - (stl * cfont.x_size)) / 2;
@@ -828,12 +851,12 @@ void PiScreen::print(char *st, int x, int y, int deg) {
     
         if (deg==0) {
         
-            if(tmpX + cfont.x_size > disp_x_size) {
-            
-                y += cfont.y_size;
-                tmpX = 0;
-        
-            }
+            // if(tmpX + cfont.x_size > disp_x_size) {
+            // 
+            //     y += cfont.y_size;
+            //     tmpX = 0;
+            // 
+            // }
             
             printChar(*st++, tmpX, y);
             
@@ -847,8 +870,13 @@ void PiScreen::print(char *st, int x, int y, int deg) {
 
 void PiScreen::print(char *st,SdFile imageFont,int x,int y,SdFile imageBack,int xBack,int yBack,int frameBack,int transparencyColor,int space) {
 
-    if(!imageFont.isOpen()) return;
-
+    #ifdef USE_SDFAT
+        if(!imageFont.isOpen()) return;
+    #else
+        if(!imageFont) return;
+    #endif
+    
+    
     int strLength, i;
     
     imageFont.seekSet(0);
@@ -1004,11 +1032,11 @@ void PiScreen::printNumF(double num, byte dec, int x, int y, char divider, int l
 
 void PiScreen::setFont(uint8_t* font) {
 
-    cfont.font=font;
-    cfont.x_size=fontbyte(0);
-    cfont.y_size=fontbyte(1);
-    cfont.offset=fontbyte(2);
-    cfont.numchars=fontbyte(3);
+    cfont.font     = font;
+    cfont.x_size   = fontbyte(0);
+    cfont.y_size   = fontbyte(1);
+    cfont.offset   = fontbyte(2);
+    cfont.numchars = fontbyte(3);
 
 }
 
@@ -1323,7 +1351,12 @@ void PiScreen::setBackground(char * filename,int x,int y) {
     
     // Open file
     
-    if(!backgroundInfo.file.open(filename,O_RDWR)) return;
+    #ifdef USE_SDFAT
+        if(!backgroundInfo.file.open(filename,O_RDWR)) return;
+    #else
+        backgroundInfo.file = SD.open(filename);
+        if(!backgroundInfo.file) return;
+    #endif
     
     printImageInfo(&backgroundInfo);
     
@@ -1456,6 +1489,7 @@ bool PiScreen::printImage(image_info * info,int frame) {
         else if(info->bits == 24) 
         
             printBitmap24(
+            info->file,
             info->file_start,
             info->x,info->y,
             info->width,info->height);
@@ -1504,12 +1538,22 @@ void PiScreen::printBitmap(SdFile tmpFile,int x,int y,int imageXa,int imageYa,in
 
 void PiScreen::printBitmap(SdFile tmpFile,int x,int y,bool partialPrint,int imageXa,int imageYa,int imageXb,int imageYb,bool isbackground) {
 
+#ifdef USE_SDFAT
     if(!tmpFile.isOpen()) {
+#else
+    if(!tmpFile) {
+#endif
     
         printErrorImage(x,y);
         return;
-    
+
+// Yes, this doesn't actually do anything. It is just so notepad++ 
+// doesn't mess up the collapse groups because of a missing ending brace
+#ifdef USE_SDFAT
     }
+#else
+    }
+#endif
     
     tmpFile.seekSet(10);
     
@@ -1571,9 +1615,9 @@ void PiScreen::printBitmap(SdFile tmpFile,int x,int y,bool partialPrint,int imag
 
     } else {
     
-        if(dataBits == 16) {         printBitmap16(tmpFile,imageStart,x,y,imageWidth,imageHeight); } 
+        if(dataBits == 16) {          printBitmap16(tmpFile,imageStart,x,y,imageWidth,imageHeight); } 
         else if(dataBits == 32) {     printBitmap32(tmpFile,imageStart,x,y,imageWidth,imageHeight); }
-        else if(dataBits == 24) {     printBitmap24(imageStart,x,y,imageWidth,imageHeight); }
+        else if(dataBits == 24) {     printBitmap24(tmpFile,imageStart,x,y,imageWidth,imageHeight); }
     
     }
     
@@ -1581,7 +1625,9 @@ void PiScreen::printBitmap(SdFile tmpFile,int x,int y,bool partialPrint,int imag
 
 void PiScreen::printBitmap16(SdFile tempFile,int imageStart,int x,int y,int imageWidth,int imageHeight) {
 
-    // if(D) db.println("printBitmap16");
+    #ifdef db
+        db.printf("printBitmap16 imageStart %d x %d y %d\r\n",imageStart,x,y);
+    #endif
     
     // Bytes of color per pixel this is the 565 + alpha format
     int const dataBytes = 2;
@@ -1593,7 +1639,13 @@ void PiScreen::printBitmap16(SdFile tempFile,int imageStart,int x,int y,int imag
     
     sbi(P_RS, B_RS);
     
-    int bytesread;
+    #if USE_SDFAT
+        int bytesread;
+    #else
+        // Arduino Sd Library returns a int16_t so we are doing this to get 
+        // the right number back when we are over the limit for a int16_t
+        uint16_t bytesread;
+    #endif
     
     int toRead = BUFFER_SIZE;
     toRead -= toRead % dataBytes;
@@ -1849,12 +1901,23 @@ void PiScreen::printRaw(SdFile tmpFile,int x,int y,int frame,bool partialPrint,b
     int frameDelay = tmpFile.read(); // delay
     int frameTotal = (tmpFile.read() << 8) + tmpFile.read(); // Frame Total
     
+#ifdef USE_SDFAT
     if(!tmpFile.isOpen()) {
+#else
+    if(!tmpFile) {
+#endif
     
         printErrorImage(x,y,frame);
         return;
-    
+
+// Yes, this doesn't actually do anything. It is just so notepad++ 
+// doesn't mess up the collapse groups because of a missing ending brace
+#ifdef USE_SDFAT
     }
+#else
+    }
+#endif
+
     
     // if(D) db.printf("frameTotal %d %d\r\n",frameTotal,frame);
     // if(D) db.printf("imageWidth %d imageHeight %d dataBits %d\r\n",imageWidth,imageHeight,dataBits);
@@ -2719,98 +2782,68 @@ void PiScreen::printBitmap16(SdFile tempFile,int imageStart,int x,int y,int imag
 
 */
 
-void PiScreen::printBitmap24(int imageStart,int x,int y,int imageWidth,int imageHeight) {
+void PiScreen::printBitmap24(SdFile tempFile,int imageStart,int x,int y,int imageWidth,int imageHeight) {
     
-//     if(D) db.printf("printBitmap24 %d %d %d %d %d\r\n",imageStart,x,y,imageWidth,imageHeight);
-//     
-//     int dataBytes = 3;
-// 
-//     byte r,g,b,hi,lo;
-//     uint16_t pixelColor;
-//     // byte lineBuffer[(imageWidth*dataBytes+1)*BITMAP_LINES_TO_BUFFER];
-//     
-//     // int timeA = micros();
-//     
-//     // 
-// #endif
-//     
-//     setXY(x,y,x+imageWidth-1,y+imageHeight-1);
-//     
-//     // Loop through the rows
-//     for(int he=0;he<imageHeight;he+=BITMAP_LINES_TO_BUFFER) {
-//     
-//         // int time1 = micros();
-//         
-//         int total = BITMAP_LINES_TO_BUFFER;
-//         if(he+(total-1) > imageHeight) {
-//             total = imageHeight-he;
-//             // if(D) db << pstr("Correcting for the last ") << dec << total << ' ' << dec << imageHeight << ' ' << dec << he << endl;
-//         }
-//     
-//         imageFile.seekSet(imageStart + ((imageHeight - 1 - he - (total-1)) * imageWidth * dataBytes));
-//     
-//         int lineBytesRead = imageFile.read(lineBuffer,(imageWidth * dataBytes) * total);
-//         
-//         // int time2 = micros();
-//         
-//         int byteCount = lineBytesRead-1;
-//         for(int bufLines=0;bufLines<total;bufLines++) {
-//             
-//             for(int we=0;we<imageWidth;we++) { // for(int i=0;i<lineBytesRead/3;i++) {
-//             
-//                 // // 8 bit red green and blue values
-//                 // if(dataBits == 24) {
-//                 // 
-//                 //     // Pulling the RGB data bytes for a pixel, is LSB order
-//                 //     r = lineBuffer[byteCount--];
-//                 //     g = lineBuffer[byteCount--];
-//                 //     b = lineBuffer[byteCount--];
-//                 //     // b = imageFile.read();
-//                 //     // g = imageFile.read();
-//                 //     // r = imageFile.read();
-//                 //     
-//                 //     // Setting the color
-//                 //     // setColor(~r, ~g, ~b);
-//                 //     setColor(r, g, b);
-//                 //     
-//                 //     // Draw pixel, file starts at the bottom right that's why these are offsets from the right and bottom edges of the image
-//                 //     // drawPixel(x+imageWidth-i,y+imageHeight-he);
-//                 //     
-//                 //     // setXY(x, y, x, y);
-//                 //     setPixel((fch<<8)|fcl);
-//                 //     
-//                 // // RGB 565 format
-//                 // } else if(dataBits == 16) {
-//                 
-//                     // hi = lineBuffer[byteCount--];
-//                     // lo = lineBuffer[byteCount--];
-//                     
-//                     // pixelColor = (hi << 8) + lo;
-//                     // pixelColor = ~((hi << 8) + lo);
-//                     
-//                     // Settings the colors based on the 565 format
-//                     // setColor(pixelColor);
-//                     // setColor(((pixelColor >> 11) & 0b11111)*8, ((pixelColor >> 5) & 0b111111)*4, (pixelColor & 0b11111)*8);
-//                     // setColor((pixelColor & 0b11111)*8, ((pixelColor >> 5) & 0b111111)*4, ((pixelColor >> 11) & 0b11111)*8);
-//                     
-//                     LCD_Write_DATA(lineBuffer[byteCount--],lineBuffer[byteCount--]);
-//                     
-//                 // }
-//                 
-//             
-//             }
-//         
-//         }
-//     
-//     }
-//     
-//     // // #endif
-//     clrXY();
-//     
-//     // int timeB = micros();
-//     
-//     // if(D) db << pstr(" Time: ") << dec << (timeB-timeA) << endl;
+    #ifdef db
+        db.printf("printBitmap24 imageStart %d x %d y %d\r\n",imageStart,x,y);
+    #endif
+    
+    // Bytes of color per pixel this is the R8G8B8 format
+    int const dataBytes = 3;
 
+    setEntryMode(BOTTOM_LEFT);
+    
+    // Set the window that we want to print to [For some reason this needs to be after the above 'cbi' command]
+    setXY(x,y,x+imageWidth-1,y+imageHeight-1);
+    
+    sbi(P_RS, B_RS);
+    
+    #if USE_SDFAT
+        int bytesread;
+    #else
+        // Arduino Sd Library returns a int16_t so we are doing this to get 
+        // the right number back when we are over the limit for a int16_t
+        uint16_t bytesread;
+    #endif
+    
+    int toRead = BUFFER_SIZE;
+    toRead -= toRead % dataBytes;
+    
+    // #ifdef db
+    //     db.printf("toRead %d\r\n",toRead);
+    // #endif
+    
+    int imageBytes = imageWidth * imageHeight * dataBytes; 
+    
+    // Seek to the start of the image
+    tempFile.seekSet(imageStart);
+    
+    // Loop through the bytes of data in the image
+    for(int byteCount=0;byteCount<imageBytes;byteCount += toRead) {
+    
+        if(imageBytes - byteCount < toRead) toRead = imageBytes - byteCount;
+        
+        // Pull the data from the sdcard
+        bytesread = tempFile.read(readBuffer,toRead);
+        
+        // Iterate through the data that was buffered
+        for(int i=0;i<bytesread;i+=dataBytes) {
+            
+            GPIOD_PDOR = ((readBuffer[i+2] & 248) | readBuffer[i+1] >> 5);
+            pulse_low(P_WR, B_WR);
+            
+            GPIOD_PDOR = ((readBuffer[i+1] & 28) << 3 | readBuffer[i] >> 3);
+            pulse_low(P_WR, B_WR);
+        
+        }
+        
+    }
+    
+    // Set the entry mode back to normal
+    setEntryMode(TOP_LEFT);
+    
+    clrXY();
+    
 }
 
 void PiScreen::printBitmap32(SdFile tempFile,int imageStart,int x,int y,int imageWidth,int imageHeight) {

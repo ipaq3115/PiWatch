@@ -10,6 +10,17 @@
 #ifndef PiScreen_
 #define PiScreen_
 
+// Uncomment this line to use sdfat instead of the normal Arduino SD library
+// #define USE_SDFAT
+
+#ifdef USE_SDFAT
+    #include <SdFat.h>
+#else
+    #include <SD.h>
+    #define SdFile File
+    #define seekSet seek
+#endif
+
 #define ERR(x) Serial.println(x);
 
 #define LEFT 0
@@ -67,7 +78,8 @@
 #define VGA_TRANSPARENT    0xFFFFFFFF
 
 #include "Arduino.h"
-#include <SdFat.h>
+
+extern uint8_t BigFont[];
 
 struct _current_font
 {
@@ -128,39 +140,39 @@ class PiScreen {
     
         PiScreen();
         
-        static void InitLCD(byte orientation = LANDSCAPE);
-        void    clrScr();
-        void    drawPixel(int x, int y);
-        void    drawLine(int x1, int y1, int x2, int y2);
-        void    fillScr(byte r, byte g, byte b);
-        void    fillScr(word color);
-        void    drawRect(int x1, int y1, int x2, int y2);
-        void    drawRoundRect(int x1, int y1, int x2, int y2);
-        void    fillRect(int x1, int y1, int x2, int y2);
-        void    fillRoundRect(int x1, int y1, int x2, int y2);
-        void    drawCircle(int x, int y, int radius);
-        void    fillCircle(int x, int y, int radius);
-        static void setColor(byte r, byte g, byte b);
-        static void setColor(word color);
-        word    getColor();
-        static void setBackColor(byte r, byte g, byte b);
-        static void setBackColor(uint32_t color);
-        word    getBackColor();
-        void    print(char *st, int x, int y, int deg=0);
-        void    print(String st, int x, int y, int deg=0);
-        void    print(char *st,SdFile imageFont,int x,int y,SdFile imageBack,int xBack,int yBack,int frameBack,int transparencyColor=-1,int space=0);
-        void    printNumI(long num, int x, int y, int length=0, char filler=' ');
-        void    printNumF(double num, byte dec, int x, int y, char divider='.', int length=0, char filler=' ');
-        void    setFont(uint8_t* font);
-        uint8_t* getFont();
-        uint8_t    getFontXsize();
-        uint8_t    getFontYsize();
-        void    drawBitmap(int x, int y, int sx, int sy, bitmapdatatype data, int scale=1);
-        void    drawBitmap(int x, int y, int sx, int sy, bitmapdatatype data, int deg, int rox, int roy);
-        int        getDisplayXSize();
-        int        getDisplayYSize();
-        void    setLcdOrientation(int tmpOrient) { orient = tmpOrient; setEntryMode(TOP_LEFT); }
-        int     getOrientation() { return orient; }
+        static void     InitLCD(byte orientation = LANDSCAPE);
+        static void     clrScr();
+        void            drawPixel(int x, int y);
+        void            drawLine(int x1, int y1, int x2, int y2);
+        void            fillScr(byte r, byte g, byte b);
+        void            fillScr(word color);
+        void            drawRect(int x1, int y1, int x2, int y2);
+        void            drawRoundRect(int x1, int y1, int x2, int y2);
+        void            fillRect(int x1, int y1, int x2, int y2);
+        void            fillRoundRect(int x1, int y1, int x2, int y2);
+        void            drawCircle(int x, int y, int radius);
+        void            fillCircle(int x, int y, int radius);
+        static void     setColor(byte r, byte g, byte b);
+        static void     setColor(word color);
+        word            getColor();
+        static void     setBackColor(byte r, byte g, byte b);
+        static void     setBackColor(uint32_t color);
+        word            getBackColor();
+        void            print(char *st, int x=CENTER, int y=CENTER, int deg=0);
+        void            print(String st, int x=CENTER, int y=CENTER, int deg=0);
+        void            print(char *st,SdFile imageFont,int x,int y,SdFile imageBack,int xBack,int yBack,int frameBack,int transparencyColor=-1,int space=0);
+        void            printNumI(long num, int x, int y, int length=0, char filler=' ');
+        void            printNumF(double num, byte dec, int x, int y, char divider='.', int length=0, char filler=' ');
+        static void     setFont(uint8_t* font);
+        uint8_t*        getFont();
+        uint8_t         getFontXsize();
+        uint8_t         getFontYsize();
+        void            drawBitmap(int x, int y, int sx, int sy, bitmapdatatype data, int scale=1);
+        void            drawBitmap(int x, int y, int sx, int sy, bitmapdatatype data, int deg, int rox, int roy);
+        int             getDisplayXSize();
+        int             getDisplayYSize();
+        void            setLcdOrientation(int tmpOrient) { orient = tmpOrient; setEntryMode(TOP_LEFT); }
+        int             getOrientation() { return orient; }
         
         int backX,backY,backImageStart,backWidth,backHeight,backBytes;
         SdFile backgroundImageFile;
@@ -218,14 +230,14 @@ class PiScreen {
         
         void printPartialBitmap16(SdFile tempFile,int imageStart,int x,int y,int imageWidth,int imageHeight,int imageXa,int imageYa,int imageXb,int imageYb);
         
-        void printBitmap24(int imageStart,int x,int y,int imageWidth,int imageHeight); 
+        void printBitmap24(SdFile tempFile,int imageStart,int x,int y,int imageWidth,int imageHeight); 
 
 
     // protected:
 
-        static byte     fch, fcl, bch, bcl;
-        static byte     orient;
-        long            disp_x_size, disp_y_size;
+        static byte fch, fcl, bch, bcl;
+        static byte orient;
+        static long disp_x_size, disp_y_size;
         // byte            display_model, display_transfer_mode, display_serial_mode;
         static regtype            *P_RS, *P_WR, *P_RST, *P_SDA, *P_SCL, *P_ALE;
         static regsize            B_RS, B_WR, B_RST, B_SDA, B_SCL, B_ALE;
@@ -243,14 +255,14 @@ class PiScreen {
         void drawHLine(int x, int y, int l);
         void drawVLine(int x, int y, int l);
         void printChar(byte c, int x, int y);
-        void setXY(word x1, word y1, word x2, word y2);
+        static void setXY(word x1, word y1, word x2, word y2);
         static void setEntryMode(lcd_corner_start id);
-        void gotoXY(word x0,word y0);
-        void clrXY();
+        static void gotoXY(word x0,word y0);
+        static void clrXY();
         void rotateChar(byte c, int x, int y, int pos, int deg);
         void _set_direction_registers();
         void _fast_fill_16(int ch, int cl, long pix);
-        void _fast_fill_8(int ch, long pix);
+        static void _fast_fill_8(int ch, long pix);
         void _convert_float(char *buf, double num, int width, byte prec);
         
         // static bool D;
@@ -278,5 +290,9 @@ class PiScreen {
 };
 
 // bool PiScreen::D = true;
+
+#ifndef USE_SDFAT
+#undef SdFile
+#endif
 
 #endif
