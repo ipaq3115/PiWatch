@@ -95,7 +95,7 @@ public:
 
 PiWatch() {}
 
-static void init(void (*tmpTouchCallback)(int,int,int,int)) {
+static void init() {
 
     hVer = EEPROM.read(0);
     #ifdef db
@@ -105,9 +105,16 @@ static void init(void (*tmpTouchCallback)(int,int,int,int)) {
     
     setupPins();
     
-    touchInit(tmpTouchCallback);
-    
     InitLCD();
+    clrScr();
+    
+}
+
+static void init(void (*tmpTouchCallback)(int,int,int,int)) {
+
+    init();
+
+    touchInit(tmpTouchCallback);
     
 }
 
