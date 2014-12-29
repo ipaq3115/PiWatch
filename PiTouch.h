@@ -67,7 +67,7 @@ extern volatile int hVer;
     
 const int touchPinA[PI_TOUCH_PIN_TOTAL] = {25,16,17, 0, 1,32,22,23,33,15}; // Old
 const int touchPinB[PI_TOUCH_PIN_TOTAL] = {17,16,33,23,22,15,25,32, 1, 0}; // New
-    
+
 // Uncomment this line to go int loop mode, this is mainly just for debugging
 // without all of the funness that is interrupts
 // #define LOOP_MODE
@@ -173,6 +173,46 @@ static void touchInit(void (*callbackTmp)(int,int,int,int)) {
 
     touchReader();
     
+}
+
+static void restartTouch() {
+
+    SIM_SCGC5 |= SIM_SCGC5_TSI;
+    
+    for(int i=0;i<PI_TOUCH_PIN_TOTAL;i++) {
+    
+        uint8_t pin = (hVer == 0 ? touchPinA[i] : touchPinB[i]);
+    
+        *portConfigRegister(pin) = PORT_PCR_MUX(0);
+        TSI0_PEN |= (1 << pin2tsi[pin]);
+    
+    }
+    
+    TSI0_SCANC = TSI_SCANC_REFCHRG(3) | TSI_SCANC_EXTCHRG(CURRENT);
+    // TSI0_SCANC = (0xF << 24) | (0xF << 16);
+    
+
+
+    touchBufferOverrun = false;
+    for(int i=0;i<PI_TOUCH_PIN_TOTAL;i++) touchBufferMoving[i] = false;
+
+    touchBufferPointer = 0;
+    touchBufferTotal = 0;
+    
+    sensorBufferCounter = 0;
+    
+    // Start the sampling
+
+    state = START_WAIT;
+
+    touchReader();
+
+}
+
+static void touchEnd() {
+
+    primaryTimer.end();
+
 }
 
 // 0 is normal side up 1 is rotated 90 degrees and so on...

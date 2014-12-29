@@ -1639,7 +1639,7 @@ void PiScreen::printBitmap16(SdFile tempFile,int imageStart,int x,int y,int imag
     
     sbi(P_RS, B_RS);
     
-    #if USE_SDFAT
+    #ifdef USE_SDFAT
         int bytesread;
     #else
         // Arduino Sd Library returns a int16_t so we are doing this to get 
@@ -2798,7 +2798,7 @@ void PiScreen::printBitmap24(SdFile tempFile,int imageStart,int x,int y,int imag
     
     sbi(P_RS, B_RS);
     
-    #if USE_SDFAT
+    #ifdef USE_SDFAT
         int bytesread;
     #else
         // Arduino Sd Library returns a int16_t so we are doing this to get 
