@@ -9,9 +9,9 @@
     #define sync flush
 #endif
 
-// Use this to send the the debug to the desired
-// Comment it out to compile without debug statements
-#define db Serial
+// Define this to send the the debug to the desired
+// Serial port
+// #define db Serial
 
 byte                PiScreen::orient;
 _current_font       PiScreen::cfont;
