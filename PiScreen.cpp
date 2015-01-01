@@ -1444,6 +1444,35 @@ void PiScreen::loadHeader(image_info * info) {
    
 }
 
+bool PiScreen::printImage(char * filename,int x,int y,int frame) {
+
+    image_info img;
+    
+    img.x = x; 
+    img.y = y;
+    
+    for(int i=0;i<=strlen(filename);i++) img.filename[i] = filename[i];
+
+    if(!img.file.open(filename,O_READ)) {
+        
+        #ifdef db
+            db.printf("printImage: Couldn't open %s\r\n",filename);
+        #endif
+    
+        return false;
+    
+    }
+
+    loadHeader(&img);
+    
+    printImage(&img,frame);
+    
+    img.file.close();
+    
+    return true;
+    
+}
+
 bool PiScreen::printImage(image_info * info,int frame) {
 
     if(info->type == imagetype::GCI) {
@@ -1495,6 +1524,8 @@ bool PiScreen::printImage(image_info * info,int frame) {
             info->width,info->height);
     
     }
+    
+    return true;
 
 }
 

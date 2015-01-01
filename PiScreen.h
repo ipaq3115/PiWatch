@@ -11,7 +11,7 @@
 #define PiScreen_
 
 // Uncomment this line to use sdfat instead of the normal Arduino SD library
-// #define USE_SDFAT
+#define USE_SDFAT
 
 #ifdef USE_SDFAT
     #include <SdFat.h>
@@ -181,11 +181,12 @@ class PiScreen {
         
         void loadHeader(image_info * info);
         void printImageInfo(image_info * info);
-        
+
         void setBackground(char * filename,int x,int y);
         void clrBackground();
         void printBackground();
         
+        bool printImage(char * filename,int x,int y,int frame = 0);
         bool printImage(image_info * info,int frame = 0);
         
         void mergeImages(SdFile * newFile,SdFile * backFile,SdFile * frontFile,int x,int y,int frame);

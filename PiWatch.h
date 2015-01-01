@@ -25,9 +25,10 @@ namespace PIN { // Pin definitions
     
     // Analog In
     POWER_BUTTON    = A11,
+    BATTERY         = A10,
 
     // Analog Out [PWM]
-    LCD_BACKLIGHT   = 4,
+    LCD_BACKLIGHT     = 4,
     
     // Digital Out
     SD_CHIP_SELECT    = 30,
@@ -216,6 +217,20 @@ int speaker(bool value) {
 
     pinMode(PIN::AMPLIFIER_ENABLE, OUTPUT);
     digitalWrite(PIN::AMPLIFIER_ENABLE, value);
+
+}
+
+int getBatteryRaw() {
+
+    int value;
+
+    analogReadResolution(10);
+    
+    value = analogRead(PIN::BATTERY);
+    
+    analogReadResolution(8);
+    
+    return value;
 
 }
 
