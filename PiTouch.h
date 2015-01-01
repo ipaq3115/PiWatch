@@ -225,6 +225,12 @@ static void setTouchOrientation(int orient) {
     
 }
 
+static int getTouchOrientation() {
+
+    return rotation;
+
+}
+
 static void setResponseRate(int value) {
 
     if(value > 100) value = 100;
@@ -269,9 +275,11 @@ static void calCapacitive() {
     uint32_t ch;
     uint8_t pin;
     
+    int const CAL_POINTS = 10;
+    
     for(int n=0;n<PI_TOUCH_PIN_TOTAL;n++) calValue[n] = 0;
 
-    for(int i=0;i<10;i++) {
+    for(int i=0;i<CAL_POINTS;i++) {
 
         // Start touch read 
         TSI0_GENCS = 0;
@@ -293,7 +301,7 @@ static void calCapacitive() {
     }
 
     for(int n=0;n<PI_TOUCH_PIN_TOTAL;n++) {
-        calValue[n] /= 10;
+        calValue[n] /= CAL_POINTS;
         // Serial.printf("Cal: %d\r\n",calValue[n]);
     }
     

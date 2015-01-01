@@ -154,6 +154,14 @@ class PiScreen {
         void            fillCircle(int x, int y, int radius);
         static void     setColor(byte r, byte g, byte b);
         static void     setColor(word color);
+        uint16_t        RGBto565(byte r, byte g, byte b) {
+        
+            byte thi = ((r & 248) | g >> 5);
+            byte tlo = ((g & 28) << 3 | b >> 3);
+
+            return (thi << 8) + tlo;
+            
+        }
         word            getColor();
         static void     setBackColor(byte r, byte g, byte b);
         static void     setBackColor(uint32_t color);
@@ -172,7 +180,7 @@ class PiScreen {
         int             getDisplayXSize();
         int             getDisplayYSize();
         void            setLcdOrientation(int tmpOrient) { orient = tmpOrient; setEntryMode(TOP_LEFT); }
-        int             getOrientation() { return orient; }
+        int             getLcdOrientation() { return orient; }
         
         int backX,backY,backImageStart,backWidth,backHeight,backBytes;
         SdFile backgroundImageFile;

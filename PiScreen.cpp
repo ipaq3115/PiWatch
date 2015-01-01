@@ -571,6 +571,7 @@ void PiScreen::setColor(byte r, byte g, byte b) {
 
     fch = ((r & 248) | g >> 5);
     fcl = ((g & 28) << 3 | b >> 3);
+
 }
 
 void PiScreen::setColor(word color) {
@@ -1448,7 +1449,7 @@ bool PiScreen::printImage(char * filename,int x,int y,int frame) {
 
     image_info img;
     
-    img.x = x; 
+    img.x = x;
     img.y = y;
     
     for(int i=0;i<=strlen(filename);i++) img.filename[i] = filename[i];
