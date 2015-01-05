@@ -270,7 +270,6 @@ class PiScreen {
         static void clrXY();
         void rotateChar(byte c, int x, int y, int pos, int deg);
         void _set_direction_registers();
-        void _fast_fill_16(int ch, int cl, long pix);
         static void _fast_fill_8(int ch, long pix);
         void _convert_float(char *buf, double num, int width, byte prec);
         
