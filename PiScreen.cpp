@@ -2,6 +2,15 @@
 #include <pins_arduino.h>
 #include "PiScreen.h"
 
+// Port D
+// #define WRITE_BUS_BYTE(x) *(volatile uint8_t *)(&GPIOD_PDOR) = x; pulse_low(P_WR, B_WR);
+
+// Port B
+#define WRITE_BUS_BYTE(x) GPIOB_PCOR = 0x000F000F; GPIOB_PSOR = (0x0F & x) | ((x >> 4) << 16); pulse_low(P_WR, B_WR);
+
+#define CLOCK_BUS_BYTE(x) WRITE_BUS_BYTE(x) pulse_low(P_WR, B_WR);
+#define CLOCK_BUS_WORD(hi,lo) CLOCK_BUS_BYTE(hi) CLOCK_BUS_BYTE(lo)
+
 #ifdef USE_SDFAT
 #else
     #define SdFile File
@@ -32,7 +41,8 @@ PiScreen::PiScreen() {
     
     int const RS  = 27;
     int const WR  = 28;
-    int const RST = 29;
+    int const RST = 33;
+    // int const RST = 29;
     
     P_RS     = portOutputRegister(digitalPinToPort(RS));
     P_WR     = portOutputRegister(digitalPinToPort(WR));
@@ -1426,7 +1436,7 @@ void PiScreen::loadHeader(image_info * info) {
         
         if(info->file.read(rd, 8) != 8) {
         
-            ERR("load header GCI");
+            ERR("load header GCI")
             return;
         
         }
@@ -1698,12 +1708,8 @@ void PiScreen::printBitmap16(SdFile tempFile,int imageStart,int x,int y,int imag
         // Iterate through the data that was buffered
         for(int i=0;i<bytesread;i+=dataBytes) {
             
-            GPIOD_PDOR = readBuffer[i + 1];
-            pulse_low(P_WR, B_WR);
+            CLOCK_BUS_WORD(readBuffer[i + 1],readBuffer[i])
             
-            GPIOD_PDOR = readBuffer[i];
-            pulse_low(P_WR, B_WR);
-        
         }
         
     }
@@ -1745,13 +1751,9 @@ void PiScreen::printPartialBitmap16(SdFile tempFile,int imageStart,int x,int y,i
         
         // Print all of the pixels in this row
         while(byteCount>=0) {
-            
-            GPIOD_PDOR = readBuffer[byteCount--];
-            pulse_low(P_WR, B_WR);
-            
-            GPIOD_PDOR = readBuffer[byteCount--];
-            pulse_low(P_WR, B_WR);
-            
+        
+            CLOCK_BUS_WORD(readBuffer[byteCount--],readBuffer[byteCount--])
+        
         }
         
     }
@@ -1852,15 +1854,9 @@ void PiScreen::videoFrame(int frame,int x,int y) {
         
         // Iterate through the data that was buffered
         for(int i=0;i<bytesread;i+=dataBytes) {
-         
-            // Not uning LCD_Writ_Bus() here because it causes a 2 fps drop in speed just calling that other piece of code
-            
-            *(volatile uint8_t *)(&GPIOD_PDOR) = readBuffer[i];
-            pulse_low(P_WR, B_WR);
-            
-            *(volatile uint8_t *)(&GPIOD_PDOR) = readBuffer[i + 1];
-            pulse_low(P_WR, B_WR);
         
+            CLOCK_BUS_WORD(readBuffer[i],readBuffer[i + 1])
+            
         }
         
     }
@@ -2227,11 +2223,8 @@ void PiScreen::printRawPartialBitmap16(
                     lineBuffer[i + 1] = lineBufferBack[i + 1];
                 
                 }
-            
-                GPIOD_PDOR = lineBuffer[i];
-                pulse_low(P_WR, B_WR);
-                GPIOD_PDOR = lineBuffer[i+1];
-                pulse_low(P_WR, B_WR);
+                
+                CLOCK_BUS_WORD(lineBuffer[i],lineBuffer[i+1])
             
             }
         
@@ -2283,13 +2276,9 @@ void PiScreen::printRawBitmap16(SdFile tempFile,int imageStart,int x,int y,int i
         
         // Iterate through the data that was buffered
         for(int i=0;i<bytesread;i+=dataBytes) {
-            
-            GPIOD_PDOR = readBuffer[i];
-            pulse_low(P_WR, B_WR);
-            
-            GPIOD_PDOR = readBuffer[i + 1];
-            pulse_low(P_WR, B_WR);
-        
+
+            CLOCK_BUS_WORD(readBuffer[i],readBuffer[i + 1])
+
         }
         
     }
@@ -2366,11 +2355,8 @@ void PiScreen::printRawPartialBitmap16(SdFile tempFile,int imageStart,int x,int 
             // while(byteCount>=0) { // for(int we=imageXa;we<=imageXb;we++) { 
             for(int i=0;i<byteCount;i+=2) {
             
-                GPIOD_PDOR = readBuffer[i];
-                pulse_low(P_WR, B_WR);
-                GPIOD_PDOR = readBuffer[i+1];
-                pulse_low(P_WR, B_WR);
-            
+                CLOCK_BUS_WORD(readBuffer[i],readBuffer[i + 1])
+
             }
         
         // }
@@ -2459,13 +2445,8 @@ void PiScreen::printRawBitmap24(SdFile tempFile,int imageStart,int x,int y,int i
                 
                 }
                 
-                GPIOD_PDOR = readBuffer[i];
-                pulse_low(P_WR, B_WR);
-                
-                GPIOD_PDOR = readBuffer[i + 1];
-                pulse_low(P_WR, B_WR);
-                
-            
+                CLOCK_BUS_WORD(readBuffer[i],readBuffer[i + 1])
+
             // Transparent
             } else if(readBuffer[i + 2] == 0x00) {
             
@@ -2525,12 +2506,8 @@ void PiScreen::printRawBitmap24(SdFile tempFile,int imageStart,int x,int y,int i
                 hi = ((r&248)|g>>5);
                 lo = ((g&28)<<3|b>>3);
                 
-                GPIOD_PDOR = hi;
-                pulse_low(P_WR, B_WR);
-                
-                GPIOD_PDOR = lo;
-                pulse_low(P_WR, B_WR);
-                
+                CLOCK_BUS_WORD(hi,lo)
+
             }
             
             pixel++;
@@ -2609,13 +2586,8 @@ void PiScreen::printRawBitmap24partial(SdFile tempFile,int imageStart,int x,int 
                 
                 }
                 
-                GPIOD_PDOR = readBuffer[i];
-                pulse_low(P_WR, B_WR);
-                
-                GPIOD_PDOR = readBuffer[i + 1];
-                pulse_low(P_WR, B_WR);
-                
-            
+                CLOCK_BUS_WORD(readBuffer[i],readBuffer[i + 1])
+
             // Transparent
             } else if(readBuffer[i + 2] == 0x00) {
             
@@ -2645,13 +2617,8 @@ void PiScreen::printRawBitmap24partial(SdFile tempFile,int imageStart,int x,int 
                 
                 }
                 
-                // Just ignoring the opacity at the moment
-                GPIOD_PDOR = readBuffer[i];
-                pulse_low(P_WR, B_WR);
-                
-                GPIOD_PDOR = readBuffer[i + 1];
-                pulse_low(P_WR, B_WR);
-                
+                CLOCK_BUS_WORD(readBuffer[i],readBuffer[i + 1])
+
             }
             
             pixel++;
@@ -2770,15 +2737,9 @@ void PiScreen::printBitmap16(SdFile tempFile,int imageStart,int x,int y,int imag
             for(int n = byteCount - widthinbytes * (i + 1) + 1; n <= a; n+=2) {
         
                 // if(D) db.printf("n %d\r\n",n);
-    
-                GPIOD_PDOR = readBuffer[n + 1];
-                // GPIOD_PDOR = lineBuffer[byteCount--];
-                pulse_low(P_WR, B_WR);
                 
-                GPIOD_PDOR = readBuffer[n];
-                // GPIOD_PDOR = lineBuffer[byteCount--];
-                pulse_low(P_WR, B_WR);
-                
+                CLOCK_BUS_WORD(readBuffer[n + 1],readBuffer[n])
+               
             }
         
         }
@@ -2850,6 +2811,8 @@ void PiScreen::printBitmap24(SdFile tempFile,int imageStart,int x,int y,int imag
     // Seek to the start of the image
     tempFile.seekSet(imageStart);
     
+    byte thi,tlo;
+    
     // Loop through the bytes of data in the image
     for(int byteCount=0;byteCount<imageBytes;byteCount += toRead) {
     
@@ -2860,13 +2823,12 @@ void PiScreen::printBitmap24(SdFile tempFile,int imageStart,int x,int y,int imag
         
         // Iterate through the data that was buffered
         for(int i=0;i<bytesread;i+=dataBytes) {
-            
-            GPIOD_PDOR = ((readBuffer[i+2] & 248) | readBuffer[i+1] >> 5);
-            pulse_low(P_WR, B_WR);
-            
-            GPIOD_PDOR = ((readBuffer[i+1] & 28) << 3 | readBuffer[i] >> 3);
-            pulse_low(P_WR, B_WR);
         
+            thi = ((readBuffer[i+2] & 248) | readBuffer[i+1] >> 5);
+            tlo = ((readBuffer[i+1] & 28) << 3 | readBuffer[i] >> 3);
+            
+            CLOCK_BUS_WORD(thi,tlo)
+            
         }
         
     }
@@ -3020,13 +2982,8 @@ void PiScreen::printBitmap32(SdFile tempFile,int imageStart,int x,int y,int imag
             // 
             // }
             
-        
-            GPIOD_PDOR = thi;
-            pulse_low(P_WR, B_WR);
+            CLOCK_BUS_WORD(thi,tlo)
             
-            GPIOD_PDOR = tlo;
-            pulse_low(P_WR, B_WR);
-        
         }
         
         #ifdef db
@@ -3056,7 +3013,7 @@ void PiScreen::printBitmap32(SdFile tempFile,int imageStart,int x,int y,int imag
 
 
 
-int PiScreen::strMatch(char* mystring,char* searchstring){
+int PiScreen::strMatch(char* mystring,char* searchstring) {
   
   //Serial3.println(F("StrMatch:"));delay(15);
   
@@ -3080,7 +3037,7 @@ int PiScreen::strMatch(char* mystring,char* searchstring){
 
 }
 
-int PiScreen::strLength(char* string){
+int PiScreen::strLength(char* string) {
   
   
   int count = 0;
@@ -3103,9 +3060,6 @@ int PiScreen::strLength(char* string){
 }
 
 
-
-
-
 int PiScreen::getDisplayXSize() {
 
     if (orient==PORTRAIT)   return disp_x_size + 1;
@@ -3122,12 +3076,8 @@ int PiScreen::getDisplayYSize() {
 
 void PiScreen::LCD_Writ_Bus(char VH,char VL) {
 
-    *(volatile uint8_t *)(&GPIOD_PDOR) = VH;
-    pulse_low(P_WR, B_WR);
+    CLOCK_BUS_WORD(VH,VL)
     
-    *(volatile uint8_t *)(&GPIOD_PDOR) = VL;
-    pulse_low(P_WR, B_WR);
-  
 }
 
 void PiScreen::_set_direction_registers() {
@@ -3144,45 +3094,11 @@ void PiScreen::_set_direction_registers() {
 
 }
 
-void PiScreen::_fast_fill_16(int ch, int cl, long pix) {
-
-    long blocks;
-
-    *(volatile uint8_t *)(&GPIOD_PDOR) = ch;
-      GPIOB_PCOR = 0x000F000F;                        // clear data lines B0-3,B16-19
-    GPIOB_PSOR = (0x0F & cl) | ((cl >> 4) << 16);      // set data lines 0-3,16-19 if set in cl
-
-    blocks = pix/16;
-    for (int i=0; i<blocks; i++) {
-    
-        pulse_low(P_WR, B_WR);
-        pulse_low(P_WR, B_WR);
-        pulse_low(P_WR, B_WR);
-        pulse_low(P_WR, B_WR);
-        pulse_low(P_WR, B_WR);
-        pulse_low(P_WR, B_WR);
-        pulse_low(P_WR, B_WR);
-        pulse_low(P_WR, B_WR);
-        pulse_low(P_WR, B_WR);
-        pulse_low(P_WR, B_WR);
-        pulse_low(P_WR, B_WR);
-        pulse_low(P_WR, B_WR);
-        pulse_low(P_WR, B_WR);
-        pulse_low(P_WR, B_WR);
-        pulse_low(P_WR, B_WR);
-        pulse_low(P_WR, B_WR);
-        
-    }
-    
-    if ((pix % 16) != 0) for (int i=0; i<(pix % 16); i++) pulse_low(P_WR, B_WR);
-    
-}
-
 void PiScreen::_fast_fill_8(int ch, long pix) {
 
     long blocks;
 
-    *(volatile uint8_t *)(&GPIOD_PDOR) = ch;
+    WRITE_BUS_BYTE(ch);
 
     blocks = pix/16;
     for (int i=0; i<blocks; i++) {
