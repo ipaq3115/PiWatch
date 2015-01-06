@@ -2,11 +2,20 @@
 #include <pins_arduino.h>
 #include "PiScreen.h"
 
-// Port D
-// #define WRITE_BUS_BYTE(x) *(volatile uint8_t *)(&GPIOD_PDOR) = x; pulse_low(P_WR, B_WR);
+// Temporary while another port setup is tested
+// #define PORT_SHUFFLE
 
-// Port B
-#define WRITE_BUS_BYTE(x) GPIOB_PCOR = 0x000F000F; GPIOB_PSOR = (0x0F & x) | ((x >> 4) << 16); pulse_low(P_WR, B_WR);
+#ifdef PORT_SHUFFLE
+    
+    // Port B
+    #define WRITE_BUS_BYTE(x) GPIOB_PCOR = 0x000F000F; GPIOB_PSOR = (0x0F & x) | ((x >> 4) << 16);
+    
+#else
+
+    // Port D
+    #define WRITE_BUS_BYTE(x) *(volatile uint8_t *)(&GPIOD_PDOR) = x;
+
+#endif
 
 #define CLOCK_BUS_BYTE(x) WRITE_BUS_BYTE(x) pulse_low(P_WR, B_WR);
 #define CLOCK_BUS_WORD(hi,lo) CLOCK_BUS_BYTE(hi) CLOCK_BUS_BYTE(lo)
@@ -41,8 +50,12 @@ PiScreen::PiScreen() {
     
     int const RS  = 27;
     int const WR  = 28;
-    int const RST = 33;
-    // int const RST = 29;
+
+    #ifdef PORT_SHUFFLE
+        int const RST = 33;
+    #else
+        int const RST = 29;
+    #endif
     
     P_RS     = portOutputRegister(digitalPinToPort(RS));
     P_WR     = portOutputRegister(digitalPinToPort(WR));
@@ -1464,15 +1477,27 @@ bool PiScreen::printImage(char * filename,int x,int y,int frame) {
     
     for(int i=0;i<=strlen(filename);i++) img.filename[i] = filename[i];
 
+    
+    
+#ifdef USE_SDFAT
     if(!img.file.open(filename,O_READ)) {
-        
+#else
+    img.file = SD.open(filename);
+    if(!backgroundInfo.file) {
+#endif
+    
         #ifdef db
             db.printf("printImage: Couldn't open %s\r\n",filename);
         #endif
     
         return false;
     
+#ifdef USE_SDFAT
     }
+#else
+    }
+#endif
+    
 
     loadHeader(&img);
     
@@ -3076,7 +3101,7 @@ int PiScreen::getDisplayYSize() {
 
 void PiScreen::LCD_Writ_Bus(char VH,char VL) {
 
-    CLOCK_BUS_WORD(VH,VL)
+    CLOCK_BUS_WORD(VH,VL);
     
 }
 
