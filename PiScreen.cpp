@@ -1422,6 +1422,29 @@ void PiScreen::printBackground() {
 
 // Intelligent image handling
 
+bool PiScreen::loadImage(char * filename,image_info * info) {
+
+    // Close the file if it's already open
+    if(info->file.isOpen()) info->file.close();
+
+    // Open the file
+    if(!info->file.open(filename,O_READ)) {
+    
+        #ifdef db
+            db.printf("PiScreen::loadImage couldn't open %d\r\n",filename);
+        #endif
+        
+        return false;
+    
+    }
+
+    // Load the information about the image from the file
+    loadHeader(info);
+    
+    return true;
+    
+}
+
 void PiScreen::loadHeader(image_info * info) {
 
     info->file.seekSet(0);
@@ -1539,7 +1562,7 @@ bool PiScreen::printImage(image_info * info,int frame) {
             
             printRawBitmap16(
             info->file,
-            info->file_start,
+            fileStart,
             info->x,info->y,
             info->width,info->height); 
             
@@ -1547,7 +1570,7 @@ bool PiScreen::printImage(image_info * info,int frame) {
         
             printRawBitmap24(
             info->file,
-            info->file_start,
+            fileStart,
             info->x,info->y,
             info->width,info->height);
     
