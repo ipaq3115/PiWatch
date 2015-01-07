@@ -102,7 +102,8 @@ static void init() {
     #ifdef db
         db.printf("hardware %d %s\r\n",hVer,hVer == 0 ? "REVA" : "REVB");
     #endif
-    if(hVer != HARDWARE_REVA && hVer != HARDWARE_REVB) hVer = HARDWARE_REVB;
+    if(hVer != HARDWARE_REVA && hVer != HARDWARE_REVB) hVer = HARDWARE_REVB; 
+    hVer = HARDWARE_REVB;
     
     setupPins();
     

@@ -428,27 +428,45 @@ void PiScreen::fillRect(int x1, int y1, int x2, int y2) {
 
     if (x1 > x2) swap(int, x1, x2);
     if (y1 > y2) swap(int, y1, y2);
-    
-    if (fch==fcl) {
 
-        setEntryMode(TOP_LEFT);
-        
-        setXY(x1, y1, x2, y2);
-        
-        sbi(P_RS, B_RS);
-        
-        _fast_fill_8(fch,((long(x2 - x1) + 1) * (long(y2 - y1) + 1)));
-        
-    } else {
+    setEntryMode(TOP_LEFT);
     
-        for (int i=0; i<((y2-y1)/2)+1; i++) {
-        
-            drawHLine(x1, y1+i, x2-x1);
-            drawHLine(x1, y2-i, x2-x1);
-            
-        }
-        
+    setXY(x1, y1, x2, y2);
+    
+    sbi(P_RS, B_RS);
+    
+    for(int i=0;i<((x2-x1)*(y2-y1));i++) {
+    
+        CLOCK_BUS_WORD(fch,fcl);
+    
     }
+    
+    // if (fch==fcl) {
+    // 
+    //     setEntryMode(TOP_LEFT);
+    //     
+    //     setXY(x1, y1, x2, y2);
+    //     
+    //     sbi(P_RS, B_RS);
+    //     
+    //     _fast_fill_8(fch,((long(x2 - x1) + 1) * (long(y2 - y1) + 1)));
+    //     
+    // } else {
+    // 
+    //     for(int i=0;i<((x2-x1)*(y2-y1));i++) {
+    //     
+    //         CLOCK_BUS_WORD(fch,fcl);
+    //     
+    //     }
+    // 
+    //     // for (int i=0; i<((y2-y1)/2)+1; i++) {
+    //     // 
+    //     //     drawHLine(x1, y1+i, x2-x1);
+    //     //     drawHLine(x1, y2-i, x2-x1);
+    //     //     
+    //     // }
+    //     
+    // }
 }
 
 void PiScreen::fillRoundRect(int x1, int y1, int x2, int y2) {
@@ -3107,16 +3125,32 @@ void PiScreen::LCD_Writ_Bus(char VH,char VL) {
 
 void PiScreen::_set_direction_registers() {
 
-    GPIOD_PDDR |= 0xFF;
-    PORTD_PCR0  = PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
-    PORTD_PCR1  = PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
-    PORTD_PCR2  = PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
-    PORTD_PCR3  = PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
-    PORTD_PCR4  = PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
-    PORTD_PCR5  = PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
-    PORTD_PCR6  = PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
-    PORTD_PCR7  = PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
+    #ifndef PORT_SHUFFLE
 
+        GPIOD_PDDR |= 0xFF;
+        PORTD_PCR0  = PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
+        PORTD_PCR1  = PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
+        PORTD_PCR2  = PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
+        PORTD_PCR3  = PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
+        PORTD_PCR4  = PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
+        PORTD_PCR5  = PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
+        PORTD_PCR6  = PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
+        PORTD_PCR7  = PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
+
+    #else
+    
+		GPIOB_PDDR |= 0x000F000F;
+		PORTB_PCR0  = PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
+		PORTB_PCR1  = PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
+		PORTB_PCR2  = PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
+		PORTB_PCR3  = PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
+		PORTB_PCR16 = PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
+		PORTB_PCR17 = PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
+		PORTB_PCR18 = PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
+		PORTB_PCR19 = PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
+    
+    #endif
+    
 }
 
 void PiScreen::_fast_fill_8(int ch, long pix) {
