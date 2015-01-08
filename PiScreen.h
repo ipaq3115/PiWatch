@@ -119,10 +119,20 @@ enum class imagetype : byte {
 
 struct image_info {
     
+    // Position of the top left corner of the image
     int x;
     int y;
+    
+    // Dimenisons
     int width;
     int height;
+    
+    // Bounds, these determine which part of the image to actually print
+    int x1;
+    int y1;
+    int x2;
+    int y2;
+    
     int frames;
     int frame_delay;
     int file_start;
@@ -246,19 +256,19 @@ class PiScreen {
         void printErrorImage(int x1,int y1,int x2,int y2);
         void printErrorImage(int x1,int y1,int x2,int y2,int frame);
 
-        void printRawBitmap16(SdFile tempFile,int imageStart,int x,int y,int imageWidth,int imageHeight); 
-        void printRawBitmap24(SdFile tempFile,int imageStart,int x,int y,int imageWidth,int imageHeight);
+        void printRawBitmap16(image_info * info,int frame); 
+        void printRawBitmap24(image_info * info,int frame);
         
         void printRawBitmap24partial(SdFile tempFile,int imageStart,int x,int y,int imageWidth,int imageHeight,int imageXa,int imageYa,int imageXb,int imageYb);
         
         void printRawPartialBitmap16(SdFile tempFile,int imageStart,int x,int y,int imageWidth,int imageHeight,int imageXa,int imageYa,int imageXb,int imageYb); 
         
-        void printBitmap16(SdFile tempFile,int imageStart,int x,int y,int imageWidth,int imageHeight); 
-        void printBitmap32(SdFile tempFile,int imageStart,int x,int y,int imageWidth,int imageHeight); 
+        void printBitmap16(image_info * info); 
+        void printBitmap24(image_info * info); 
+        void printBitmap32(image_info * info); 
         
         void printPartialBitmap16(SdFile tempFile,int imageStart,int x,int y,int imageWidth,int imageHeight,int imageXa,int imageYa,int imageXb,int imageYb);
         
-        void printBitmap24(SdFile tempFile,int imageStart,int x,int y,int imageWidth,int imageHeight); 
 
 
     // protected:

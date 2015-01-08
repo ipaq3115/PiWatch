@@ -1554,51 +1554,14 @@ bool PiScreen::printImage(image_info * info,int frame) {
 
     if(info->type == imagetype::GCI) {
     
-        int fileStart = info->file_start;
-
-        fileStart += frame * info->width * info->height * info->bits/8;
+        if(     info->bits == 16) printRawBitmap16(info,frame); 
+        else if(info->bits == 24) printRawBitmap24(info,frame); 
         
-        if(info->bits == 16)          
-            
-            printRawBitmap16(
-            info->file,
-            fileStart,
-            info->x,info->y,
-            info->width,info->height); 
-            
-        else if(info->bits == 24)
-        
-            printRawBitmap24(
-            info->file,
-            fileStart,
-            info->x,info->y,
-            info->width,info->height);
-    
     } else if(info->type == imagetype::BITMAP) {
     
-        if(info->bits == 16) 
-        
-            printBitmap16(
-            info->file,
-            info->file_start,
-            info->x,info->y,
-            info->width,info->height);
-            
-        else if(info->bits == 32) 
-        
-            printBitmap32(
-            info->file,
-            info->file_start,
-            info->x,info->y,
-            info->width,info->height); 
-            
-        else if(info->bits == 24) 
-        
-            printBitmap24(
-            info->file,
-            info->file_start,
-            info->x,info->y,
-            info->width,info->height);
+        if(     info->bits == 16) printBitmap16(info);
+        else if(info->bits == 32) printBitmap32(info); 
+        else if(info->bits == 24) printBitmap24(info);
     
     }
     
@@ -1723,27 +1686,29 @@ void PiScreen::printBitmap(SdFile tmpFile,int x,int y,bool partialPrint,int imag
 
     } else {
     
-        if(dataBits == 16) {          printBitmap16(tmpFile,imageStart,x,y,imageWidth,imageHeight); } 
-        else if(dataBits == 32) {     printBitmap32(tmpFile,imageStart,x,y,imageWidth,imageHeight); }
-        else if(dataBits == 24) {     printBitmap24(tmpFile,imageStart,x,y,imageWidth,imageHeight); }
+        // if(dataBits == 16) {          printBitmap16(tmpFile,imageStart,x,y,imageWidth,imageHeight); } 
+        // else if(dataBits == 32) {     printBitmap32(tmpFile,imageStart,x,y,imageWidth,imageHeight); }
+        // else if(dataBits == 24) {     printBitmap24(tmpFile,imageStart,x,y,imageWidth,imageHeight); }
     
     }
     
 }
 
-void PiScreen::printBitmap16(SdFile tempFile,int imageStart,int x,int y,int imageWidth,int imageHeight) {
 
-    #ifdef db
-        db.printf("printBitmap16 imageStart %d x %d y %d\r\n",imageStart,x,y);
-    #endif
-    
+
+
+void PiScreen::printBitmap16(image_info * info) {
+
     // Bytes of color per pixel this is the 565 + alpha format
     int const dataBytes = 2;
 
     setEntryMode(BOTTOM_LEFT);
     
-    // Set the window that we want to print to [For some reason this needs to be after the above 'cbi' command]
-    setXY(x,y,x+imageWidth-1,y+imageHeight-1);
+    setXY(
+    info->x, 
+    info->y, 
+    info->x + info->width - 1,
+    info->y + info->height - 1);
     
     sbi(P_RS, B_RS);
     
@@ -1758,10 +1723,10 @@ void PiScreen::printBitmap16(SdFile tempFile,int imageStart,int x,int y,int imag
     int toRead = BUFFER_SIZE;
     toRead -= toRead % dataBytes;
     
-    int imageBytes = imageWidth * imageHeight * dataBytes; 
+    int imageBytes = info->width * info->height * dataBytes; 
     
     // Seek to the start of the image
-    tempFile.seekSet(imageStart);
+    info->file.seekSet(info->file_start);
     
     // Loop through the bytes of data in the image
     for(int byteCount=0;byteCount<imageBytes;byteCount += toRead) {
@@ -1769,7 +1734,7 @@ void PiScreen::printBitmap16(SdFile tempFile,int imageStart,int x,int y,int imag
         if(imageBytes - byteCount < toRead) toRead = imageBytes - byteCount;
         
         // Pull the data from the sdcard
-        bytesread = tempFile.read(readBuffer,toRead);
+        bytesread = info->file.read(readBuffer,toRead);
         
         // Iterate through the data that was buffered
         for(int i=0;i<bytesread;i+=dataBytes) {
@@ -1785,6 +1750,242 @@ void PiScreen::printBitmap16(SdFile tempFile,int imageStart,int x,int y,int imag
     
     clrXY();
     
+}
+
+void PiScreen::printBitmap24(image_info * info) {
+    
+    // Bytes of color per pixel this is the R8G8B8 format
+    int const dataBytes = 3;
+
+    setEntryMode(BOTTOM_LEFT);
+    
+    setXY(
+    info->x, 
+    info->y, 
+    info->x + info->width - 1,
+    info->y + info->height - 1);
+    
+    sbi(P_RS, B_RS);
+    
+    #ifdef USE_SDFAT
+        int bytesread;
+    #else
+        // Arduino Sd Library returns a int16_t so we are doing this to get 
+        // the right number back when we are over the limit for a int16_t
+        uint16_t bytesread;
+    #endif
+    
+    int toRead = BUFFER_SIZE;
+    toRead -= toRead % dataBytes;
+    
+    int imageBytes = info->width * info->height * dataBytes; 
+    
+    // Seek to the start of the image
+    info->file.seekSet(info->file_start);
+    
+    byte thi,tlo;
+    
+    // Loop through the bytes of data in the image
+    for(int byteCount=0;byteCount<imageBytes;byteCount += toRead) {
+    
+        if(imageBytes - byteCount < toRead) toRead = imageBytes - byteCount;
+        
+        // Pull the data from the sdcard
+        bytesread = info->file.read(readBuffer,toRead);
+        
+        // Iterate through the data that was buffered
+        for(int i=0;i<bytesread;i+=dataBytes) {
+        
+            thi = ((readBuffer[i+2] & 248) | readBuffer[i+1] >> 5);
+            tlo = ((readBuffer[i+1] & 28) << 3 | readBuffer[i] >> 3);
+            
+            CLOCK_BUS_WORD(thi,tlo)
+            
+        }
+        
+    }
+    
+    // Set the entry mode back to normal
+    setEntryMode(TOP_LEFT);
+    
+    clrXY();
+    
+}
+
+void PiScreen::printBitmap32(image_info * info) {
+
+    //
+    // Note: This function probably isn't fully working
+    // at the moment still haven't decided if I'm going 
+    // to kill it or maintain support for 32bit bitmaps
+    //
+
+    // Bytes of color per pixel this is the RGBA format
+    int const dataBytes = 4;
+    #if defined db
+        int seektime=0,readtime=0,scrntime=0,scrncntrltime=0;
+        int tmptimeA;
+        tmptimeA = micros();
+    #endif
+    
+    setEntryMode(TOP_LEFT);
+    
+    setXY(
+    info->x, 
+    info->y, 
+    info->x + info->width - 1,
+    info->y + info->height - 1);
+    
+    sbi(P_RS, B_RS);
+    
+    #if defined db
+        scrncntrltime += micros()-tmptimeA;
+    #endif
+    
+    int total = BITMAP_LINES_TO_BUFFER;
+    int byteCount,backByteCount;
+    int widthinbytes = info->width*dataBytes;
+    int backwidthinbytes = backWidth*backBytes;
+    int tmpHeight = info->height - 1;
+    byte thi,tlo;
+    int backXoffset = info->x - backX;
+    int backYoffset = info->y - backY;
+    
+
+    // Allocate the sd buffer
+    byte lineBuffer[widthinbytes];
+    byte lineBufferBack[backwidthinbytes];
+    
+    int r=0,g=0,b=0,a=0;
+    int rb=0,gb=0,bb=0;
+    
+    float af;
+    float tmp;
+    
+    // Loop through the rows
+    for(int he=0;he<info->height;he++) {
+    
+        #if defined db
+            tmptimeA = micros();
+        #endif
+        
+        // total = BITMAP_LINES_TO_BUFFER;
+        // if(he+(BITMAP_LINES_TO_BUFFER-1) > info->height) total = info->height-he;
+        
+        // Seek to the start of the line to read 
+        backgroundImageFile.seekSet(backImageStart + (backHeight - 1 - he - backYoffset) * backwidthinbytes - backXoffset*backBytes); 
+        info->file.seekSet(info->file_start + (tmpHeight-he)*widthinbytes); 
+        // tempFile.seekSet(info->file_start + ((tmp - he - (total-1)) * widthinbytes));
+    
+        #if defined db
+            seektime += micros()-tmptimeA;
+            tmptimeA = micros();
+        #endif
+    
+        // Pull the data from the sdcard, 'total' is the number of lines that are being pulled into the buffer
+        backByteCount = backgroundImageFile.read(lineBufferBack,backwidthinbytes) - 1;
+        byteCount = info->file.read(lineBuffer,widthinbytes) - 1;
+        // byteCount = tempFile.read(lineBuffer,(info->width*dataBytes)*total) - 1;
+    
+        #if defined db
+            readtime += micros()-tmptimeA;
+            tmptimeA = micros();
+        #endif
+
+        // Iterate through the line that were buffered
+        while(byteCount >= 0) {
+        
+            r = lineBuffer[byteCount--];
+            g = lineBuffer[byteCount--];
+            b = lineBuffer[byteCount--];
+            a = lineBuffer[byteCount--];
+            
+            // a = 122;
+            
+            af = (float)a/255;
+            
+            rb = lineBufferBack[backByteCount] & 248;
+            gb = ((lineBufferBack[backByteCount] << 5) + (lineBufferBack[backByteCount-1] >> 3)) & 252;
+            bb = (lineBufferBack[backByteCount-1] << 3) & 255;
+            backByteCount -= 2;
+            
+            // if(a==0) {
+            
+                // r = rb;
+                // g = gb;
+                // b = bb;
+            
+            // } else if(a!=255) {
+                
+                r = (r*af + rb*1*(1-af)) / (af + (1-af));
+                g = (g*af + gb*1*(1-af)) / (af + (1-af));
+                b = (b*af + bb*1*(1-af)) / (af + (1-af));
+            
+            // }
+            
+            // db << dec << rb << ' ' << dec << gb << ' ' << dec << bb << endl;
+            
+            // r = (r+rb)/2;
+            // g = (g+gb)/2;
+            // b = (b+bb)/2;
+            
+            // db << dec << r << ' ' << dec << g << ' ' << dec << b << endl << endl;
+            
+            // r = abs(r-rb)*af;
+            // g = abs(g-gb)*af;
+            // b = abs(b-bb)*af;
+            
+            // r += rb;
+            // g += gb;
+            // b += bb;
+            
+            // r = (rb + (r*a/255)); // if(r>255) r=255;
+            // g = (gb + (g*a/255)); // if(g>255) g=255;
+            // b = (bb + (b*a/255)); // if(b>255) b=255;
+            
+            // if(a) {
+            //     
+            //     // Not transparent
+                // thi = ((rb&248)|gb>>5);
+                // tlo = ((gb&28)<<3|bb>>3);
+                thi = ((r&248)|g>>5);
+                tlo = ((g&28)<<3|b>>3);
+            //     
+            //     backByteCount-=2;
+            // 
+            // } else {
+            // 
+            //     // Completely transparent
+            //     thi = lineBufferBack[backByteCount--];
+            //     tlo = lineBufferBack[backByteCount--];
+            // 
+            // }
+            
+            CLOCK_BUS_WORD(thi,tlo)
+            
+        }
+        
+        #ifdef db
+
+            scrntime += micros()-tmptimeA;
+        
+        #endif
+    
+    }
+    
+    #ifdef db
+        tmptimeA = micros();
+    #endif
+    
+    clrXY();
+    
+    #ifdef db
+    
+        scrncntrltime += micros()-tmptimeA;
+        db.printf(" Time: seek %d read %d scrn %d scrncntrltime %d\r\n",seektime,readtime,scrntime,scrncntrltime);
+        
+    #endif
+
 }
 
 void PiScreen::printPartialBitmap16(SdFile tempFile,int imageStart,int x,int y,int imageWidth,int imageHeight,int imageXa,int imageYa,int imageXb,int imageYb) {
@@ -2055,8 +2256,8 @@ void PiScreen::printRaw(SdFile tmpFile,int x,int y,int frame,bool partialPrint,b
 
     } else {
     
-        if(dataBits == 16)          printRawBitmap16(tmpFile,imageStart,x,y,imageWidth,imageHeight); 
-        else if(dataBits == 24)     printRawBitmap24(tmpFile,imageStart,x,y,imageWidth,imageHeight);
+        // if(dataBits == 16)          {} // printRawBitmap16(tmpFile,imageStart,x,y,imageWidth,imageHeight); 
+        // else if(dataBits == 24)     printRawBitmap24(tmpFile,imageStart,x,y,imageWidth,imageHeight);
     
     }
     
@@ -2314,11 +2515,15 @@ void PiScreen::printRawPartialBitmap16(
 
 }
 
-void PiScreen::printRawBitmap16(SdFile tempFile,int imageStart,int x,int y,int imageWidth,int imageHeight) {
-    
+void PiScreen::printRawBitmap16(image_info * info,int frame) {
+   
     int const dataBytes = 2;
     
-    setXY(x,y,x+imageWidth-1,y+imageHeight-1);
+    setXY(
+    info->x, 
+    info->y, 
+    info->x + info->width - 1,
+    info->y + info->height - 1);
     
     sbi(P_RS, B_RS);
     
@@ -2327,10 +2532,10 @@ void PiScreen::printRawBitmap16(SdFile tempFile,int imageStart,int x,int y,int i
     int toRead = BUFFER_SIZE;
     toRead -= toRead % dataBytes;
     
-    int imageBytes = imageWidth * imageHeight * dataBytes; 
+    int imageBytes = info->width * info->height * dataBytes; 
     
     // Seek to the start of the image
-    tempFile.seekSet(imageStart);
+    info->file.seekSet(info->file_start + frame * imageBytes);
     
     // Loop through the bytes of data in the image
     for(int byteCount=0;byteCount<imageBytes;byteCount += toRead) {
@@ -2338,7 +2543,7 @@ void PiScreen::printRawBitmap16(SdFile tempFile,int imageStart,int x,int y,int i
         if(imageBytes - byteCount < toRead) toRead = imageBytes - byteCount;
     
         // Pull the data from the sdcard
-        bytesread = tempFile.read(readBuffer,toRead);
+        bytesread = info->file.read(readBuffer,toRead);
         
         // Iterate through the data that was buffered
         for(int i=0;i<bytesread;i+=dataBytes) {
@@ -2445,17 +2650,18 @@ void PiScreen::printRawPartialBitmap16(SdFile tempFile,int imageStart,int x,int 
 
 }
 
-void PiScreen::printRawBitmap24(SdFile tempFile,int imageStart,int x,int y,int imageWidth,int imageHeight) {
-    
-    // if(D) db.println("printRawBitmap24");
+void PiScreen::printRawBitmap24(image_info * info,int frame) {
     
     // Bytes of color per pixel, this is the 565 + alpha format
     int const dataBytes = 3;
 
     setEntryMode(TOP_LEFT);
     
-    // Set the window that we want to print to [For some reason this needs to be after the above 'cbi' command]
-    setXY(x,y,x+imageWidth-1,y+imageHeight-1);
+    setXY(
+    info->x, 
+    info->y, 
+    info->x + info->width - 1,
+    info->y + info->height - 1);
     
     sbi(P_RS, B_RS);
     
@@ -2464,13 +2670,13 @@ void PiScreen::printRawBitmap24(SdFile tempFile,int imageStart,int x,int y,int i
     int toRead = BUFFER_SIZE;
     toRead -= toRead % 3;
     
-    int imageBytes = imageWidth * imageHeight * dataBytes; 
+    int imageBytes = info->width * info->height * dataBytes; 
     
     // The flag that says we are skipping transparent stuff at the moment
     bool transparentSkipMode = false;
     
     // Seek to the start of the image
-    tempFile.seekSet(imageStart);
+    info->file.seekSet(info->file_start + frame * imageBytes);
     
     int r=0,g=0,b=0,a=0;
     int rb=0,gb=0,bb=0;
@@ -2483,7 +2689,7 @@ void PiScreen::printRawBitmap24(SdFile tempFile,int imageStart,int x,int y,int i
         if(imageBytes - byteCount < toRead) toRead = imageBytes - byteCount;
     
         // Pull the data from the sdcard
-        bytesread = tempFile.read(readBuffer,toRead);
+        bytesread = info->file.read(readBuffer,toRead);
         
         pixel = byteCount/3;
     
@@ -2491,7 +2697,7 @@ void PiScreen::printRawBitmap24(SdFile tempFile,int imageStart,int x,int y,int i
         for(int i=0;i<bytesread;i+=dataBytes) {
         
             // if(D) db.printf("px %05d %d",pixel,readBuffer[i + 2]);
-            // if(D) db.printf(" to x %d y %d",x + pixel % imageWidth,y + pixel / imageWidth);
+            // if(D) db.printf(" to x %d y %d",x + pixel % info->width,y + pixel / info->width);
         
             // Opaque
             if(readBuffer[i + 2] == 0xFF) {
@@ -2503,7 +2709,7 @@ void PiScreen::printRawBitmap24(SdFile tempFile,int imageStart,int x,int y,int i
                     transparentSkipMode = false;
                 
                     // Go to the new position
-                    gotoXY(x + pixel % imageWidth,y + pixel / imageWidth);
+                    gotoXY(info->x + pixel % info->width,info->y + pixel / info->width);
                     
                     // Go back into data writing mode
                     LCD_Write_COM(0x22); 
@@ -2523,8 +2729,8 @@ void PiScreen::printRawBitmap24(SdFile tempFile,int imageStart,int x,int y,int i
             // Somewhere between transparent and opaque
             } else {
                 
-                int curx = x + pixel % imageWidth;
-                int cury = y + pixel / imageWidth;
+                int curx = info->x + pixel % info->width;
+                int cury = info->y + pixel / info->width;
                 
                 // if(D) db.printf(" opaqish %d",transparentSkipMode);
             
@@ -2840,240 +3046,6 @@ void PiScreen::printBitmap16(SdFile tempFile,int imageStart,int x,int y,int imag
 
 
 */
-
-void PiScreen::printBitmap24(SdFile tempFile,int imageStart,int x,int y,int imageWidth,int imageHeight) {
-    
-    #ifdef db
-        db.printf("printBitmap24 imageStart %d x %d y %d\r\n",imageStart,x,y);
-    #endif
-    
-    // Bytes of color per pixel this is the R8G8B8 format
-    int const dataBytes = 3;
-
-    setEntryMode(BOTTOM_LEFT);
-    
-    // Set the window that we want to print to [For some reason this needs to be after the above 'cbi' command]
-    setXY(x,y,x+imageWidth-1,y+imageHeight-1);
-    
-    sbi(P_RS, B_RS);
-    
-    #ifdef USE_SDFAT
-        int bytesread;
-    #else
-        // Arduino Sd Library returns a int16_t so we are doing this to get 
-        // the right number back when we are over the limit for a int16_t
-        uint16_t bytesread;
-    #endif
-    
-    int toRead = BUFFER_SIZE;
-    toRead -= toRead % dataBytes;
-    
-    // #ifdef db
-    //     db.printf("toRead %d\r\n",toRead);
-    // #endif
-    
-    int imageBytes = imageWidth * imageHeight * dataBytes; 
-    
-    // Seek to the start of the image
-    tempFile.seekSet(imageStart);
-    
-    byte thi,tlo;
-    
-    // Loop through the bytes of data in the image
-    for(int byteCount=0;byteCount<imageBytes;byteCount += toRead) {
-    
-        if(imageBytes - byteCount < toRead) toRead = imageBytes - byteCount;
-        
-        // Pull the data from the sdcard
-        bytesread = tempFile.read(readBuffer,toRead);
-        
-        // Iterate through the data that was buffered
-        for(int i=0;i<bytesread;i+=dataBytes) {
-        
-            thi = ((readBuffer[i+2] & 248) | readBuffer[i+1] >> 5);
-            tlo = ((readBuffer[i+1] & 28) << 3 | readBuffer[i] >> 3);
-            
-            CLOCK_BUS_WORD(thi,tlo)
-            
-        }
-        
-    }
-    
-    // Set the entry mode back to normal
-    setEntryMode(TOP_LEFT);
-    
-    clrXY();
-    
-}
-
-void PiScreen::printBitmap32(SdFile tempFile,int imageStart,int x,int y,int imageWidth,int imageHeight) {
-
-    // if(D) db << pstr("printBitmap16 ") << dec << imageStart << ' ' << x << ' ' << y << ' ' << imageWidth << ' ' << imageHeight << endl;
-    
-    // Bytes of color per pixel this is the 565 format
-    int const dataBytes = 4;
-    #if defined db
-        int seektime=0,readtime=0,scrntime=0,scrncntrltime=0;
-        int tmptimeA;
-        tmptimeA = micros();
-    #endif
-    
-    setEntryMode(TOP_LEFT);
-    
-    // Set the window that we want to print to [For some reason this needs to be after the above 'cbi' command]
-    setXY(x,y,x+imageWidth-1,y+imageHeight-1);
-    
-    sbi(P_RS, B_RS);
-    
-    #if defined db
-        scrncntrltime += micros()-tmptimeA;
-    #endif
-    
-    int total = BITMAP_LINES_TO_BUFFER;
-    int byteCount,backByteCount;
-    int widthinbytes = imageWidth*dataBytes;
-    int backwidthinbytes = backWidth*backBytes;
-    int tmpHeight = imageHeight - 1;
-    byte thi,tlo;
-    int backXoffset = x-backX;
-    int backYoffset = y-backY;
-    
-
-    // Allocate the sd buffer
-    byte lineBuffer[widthinbytes];
-    byte lineBufferBack[backwidthinbytes];
-    
-    int r=0,g=0,b=0,a=0;
-    int rb=0,gb=0,bb=0;
-    
-    float af;
-    float tmp;
-    
-    // Loop through the rows
-    for(int he=0;he<imageHeight;he++) {
-    
-        #if defined db
-            tmptimeA = micros();
-        #endif
-        
-        // total = BITMAP_LINES_TO_BUFFER;
-        // if(he+(BITMAP_LINES_TO_BUFFER-1) > imageHeight) total = imageHeight-he;
-        
-        // Seek to the start of the line to read 
-        backgroundImageFile.seekSet(backImageStart + (backHeight - 1 - he - backYoffset) * backwidthinbytes - backXoffset*backBytes); 
-        tempFile.seekSet(imageStart + (tmpHeight-he)*widthinbytes); 
-        // tempFile.seekSet(imageStart + ((tmp - he - (total-1)) * widthinbytes));
-    
-        #if defined db
-            seektime += micros()-tmptimeA;
-            tmptimeA = micros();
-        #endif
-    
-        // Pull the data from the sdcard, 'total' is the number of lines that are being pulled into the buffer
-        backByteCount = backgroundImageFile.read(lineBufferBack,backwidthinbytes) - 1;
-        byteCount = tempFile.read(lineBuffer,widthinbytes) - 1;
-        // byteCount = tempFile.read(lineBuffer,(imageWidth*dataBytes)*total) - 1;
-    
-        #if defined db
-            readtime += micros()-tmptimeA;
-            tmptimeA = micros();
-        #endif
-
-        // Iterate through the line that were buffered
-        while(byteCount >= 0) {
-        
-            r = lineBuffer[byteCount--];
-            g = lineBuffer[byteCount--];
-            b = lineBuffer[byteCount--];
-            a = lineBuffer[byteCount--];
-            
-            // a = 122;
-            
-            af = (float)a/255;
-            
-            rb = lineBufferBack[backByteCount] & 248;
-            gb = ((lineBufferBack[backByteCount] << 5) + (lineBufferBack[backByteCount-1] >> 3)) & 252;
-            bb = (lineBufferBack[backByteCount-1] << 3) & 255;
-            backByteCount-=2;
-            
-            // if(a==0) {
-            
-                // r = rb;
-                // g = gb;
-                // b = bb;
-            
-            // } else if(a!=255) {
-                
-                r = (r*af + rb*1*(1-af)) / (af + (1-af));
-                g = (g*af + gb*1*(1-af)) / (af + (1-af));
-                b = (b*af + bb*1*(1-af)) / (af + (1-af));
-            
-            // }
-            
-            // db << dec << rb << ' ' << dec << gb << ' ' << dec << bb << endl;
-            
-            // r = (r+rb)/2;
-            // g = (g+gb)/2;
-            // b = (b+bb)/2;
-            
-            // db << dec << r << ' ' << dec << g << ' ' << dec << b << endl << endl;
-            
-            // r = abs(r-rb)*af;
-            // g = abs(g-gb)*af;
-            // b = abs(b-bb)*af;
-            
-            // r += rb;
-            // g += gb;
-            // b += bb;
-            
-            // r = (rb + (r*a/255)); // if(r>255) r=255;
-            // g = (gb + (g*a/255)); // if(g>255) g=255;
-            // b = (bb + (b*a/255)); // if(b>255) b=255;
-            
-            // if(a) {
-            //     
-            //     // Not transparent
-                // thi = ((rb&248)|gb>>5);
-                // tlo = ((gb&28)<<3|bb>>3);
-                thi = ((r&248)|g>>5);
-                tlo = ((g&28)<<3|b>>3);
-            //     
-            //     backByteCount-=2;
-            // 
-            // } else {
-            // 
-            //     // Completely transparent
-            //     thi = lineBufferBack[backByteCount--];
-            //     tlo = lineBufferBack[backByteCount--];
-            // 
-            // }
-            
-            CLOCK_BUS_WORD(thi,tlo)
-            
-        }
-        
-        #ifdef db
-
-            scrntime += micros()-tmptimeA;
-        
-        #endif
-    
-    }
-    
-    #ifdef db
-        tmptimeA = micros();
-    #endif
-    
-    clrXY();
-    
-    #ifdef db
-    
-        scrncntrltime += micros()-tmptimeA;
-        db.printf(" Time: seek %d read %d scrn %d scrncntrltime %d\r\n",seektime,readtime,scrntime,scrncntrltime);
-        
-    #endif
-
-}
 
 
 
