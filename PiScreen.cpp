@@ -1569,6 +1569,28 @@ bool PiScreen::printImage(image_info * info,int frame) {
 
 }
 
+bool PiScreen::printImage(image_info * info,int frame,int x1,int y1,int x2,int y2) {
+
+    info->x1 = x1; info->y1 = y1;
+    info->x2 = x2; info->y2 = y2;
+
+    if(info->type == imagetype::GCI) {
+    
+        if(     info->bits == 16) printPartialRawBitmap16(info,frame); 
+        else if(info->bits == 24) printPartialRawBitmap24(info,frame); 
+        
+    } else if(info->type == imagetype::BITMAP) {
+    
+        // if(     info->bits == 16) printPartialBitmap16(info);
+        // else if(info->bits == 32) printPartialBitmap32(info); 
+        // else if(info->bits == 24) printPartialBitmap24(info);
+    
+    }
+    
+    return true;
+
+}
+
 void PiScreen::printImageInfo(image_info * info) {
 
     Serial.printf("Image Info: %s\r\n",info->filename);
@@ -1595,18 +1617,27 @@ void PiScreen::printImageInfo(image_info * info) {
 
 // Bitmap
 
+/** Depreciated
+ * 
+ */
 void PiScreen::printBitmap(SdFile tmpFile,int x,int y) {
 
     printBitmap(tmpFile,x,y,false,-1,-1,-1,-1,false);
 
 }
 
+/** Depreciated
+ * 
+ */
 void PiScreen::printBitmap(SdFile tmpFile,int x,int y,int imageXa,int imageYa,int imageXb,int imageYb) {
 
     printBitmap(tmpFile,x,y,true,imageXa,imageYa,imageXb,imageYb,false);
 
 }
 
+/** Depreciated
+ * 
+ */
 void PiScreen::printBitmap(SdFile tmpFile,int x,int y,bool partialPrint,int imageXa,int imageYa,int imageXb,int imageYb,bool isbackground) {
 
 #ifdef USE_SDFAT
@@ -2244,15 +2275,15 @@ void PiScreen::printRaw(SdFile tmpFile,int x,int y,int frame,bool partialPrint,b
     
     if(partialPrint) {    
 
-        if(dataBits == 16) {         
+        // if(dataBits == 16) {         
             
-            printRawPartialBitmap16(
-            tmpFile,
-            imageStart,x,y,
-            imageWidth,imageHeight,
-            imageXa,imageYa,imageXb,imageYb);
+            // printRawPartialBitmap16(
+            // tmpFile,
+            // imageStart,x,y,
+            // imageWidth,imageHeight,
+            // imageXa,imageYa,imageXb,imageYb);
         
-        } else if(dataBits == 24) printRawBitmap24partial(tmpFile,imageStart,x,y,imageWidth,imageHeight,imageXa,imageYa,imageXb,imageYb);
+        // } else if(dataBits == 24) printRawBitmap24partial(tmpFile,imageStart,x,y,imageWidth,imageHeight,imageXa,imageYa,imageXb,imageYb);
 
     } else {
     
@@ -2558,98 +2589,6 @@ void PiScreen::printRawBitmap16(image_info * info,int frame) {
     
 }
 
-void PiScreen::printRawPartialBitmap16(SdFile tempFile,int imageStart,int x,int y,int imageWidth,int imageHeight,int imageXa,int imageYa,int imageXb,int imageYb) {
-
-    // if(D) db << pstr("printPartialBitmap16 ") << dec << imageStart << ' ' << x << ' ' << y << ' ' << imageWidth << ' ' << imageHeight << ' ' << imageXa << ' ' << imageYa << ' ' << imageXb << ' ' << imageYb << endl;
-
-    // Bytes of color per pixel this is the 565 format
-    int const dataBytes = 2;
-
-    // Allocate the sd buffer
-    // byte lineBuffer[(imageWidth*dataBytes+1)*BITMAP_LINES_TO_BUFFER];
-    
-    // Debug
-    // int timeA = micros();
-    // int seektime=0,readtime=0,scrntime=0;
-    // int tmptimeA;
-    
-    // tmptimeA = micros();
-    
-    setEntryMode(TOP_LEFT);
-    
-    // Set the window that we want to print to
-    setXY(x+imageXa,y+imageYa,x+imageXb,y+imageYb);
-    
-    sbi(P_RS, B_RS);
-    
-    // scrntime += micros()-tmptimeA;
-    
-    int widthinbytes = imageWidth * dataBytes;
-    int windowWidthBytes = (imageXb-imageXa+1)*dataBytes;
-    int tmpHeight = imageHeight - 1;
-    int byteCount;
-    
-    imageStart += (imageXa)*dataBytes;
-    // imageStart += (imageWidth - 1 - imageXb)*dataBytes;
-    
-    // Loop through the rows
-    for(int he=imageYa;he<=imageYb;he++) { // for(int he=imageYa;he<imageYb;he+=BITMAP_LINES_TO_BUFFER) {
-        
-        // if(D) db << pstr("he ") << dec << he << endl;
-        
-        // int total = BITMAP_LINES_TO_BUFFER;
-        // if(he+(total-1) > imageYb) total = imageYb-he;
-        
-        // tmptimeA = micros();
-    
-        // Seek to the start of the line to read 
-        tempFile.seekSet(imageStart + he*widthinbytes);
-        // tempFile.seekSet(imageStart + (tmpHeight-he)*widthinbytes);
-        // tempFile.seekSet(imageStart + (imageWidth - 1 - imageXb)*dataBytes + ((imageHeight - 1 - he) * imageWidth*dataBytes));
-    
-        // seektime += micros()-tmptimeA;
-    
-        // tmptimeA = micros();
-        
-        // Pull the data from the sdcard, 'total' is the number of lines that are being pulled into the buffer
-        byteCount = tempFile.read(readBuffer,windowWidthBytes) - 1; // int lineBytesRead = tempFile.read(lineBuffer,(imageWidth*dataBytes)*total);
-        
-        // readtime += micros()-tmptimeA;
-        
-        // tmptimeA = micros();
-
-        // Iterate through the line that were buffered
-        // int byteCount = lineBytesRead-1;
-        // for(int bufLines=0;bufLines<total;bufLines++) {
-            
-            // Print all of the pixels in this row
-            // while(byteCount>=0) { // for(int we=imageXa;we<=imageXb;we++) { 
-            for(int i=0;i<byteCount;i+=2) {
-            
-                CLOCK_BUS_WORD(readBuffer[i],readBuffer[i + 1])
-
-            }
-        
-        // }
-        
-        
-        // scrntime += micros()-tmptimeA;
-    
-    }
-    
-    // tmptimeA = micros();
-    
-    clrXY();
-    
-    // scrntime += micros()-tmptimeA;
-    
-    // Debug
-    // int timeB = micros();
-    // if(D) db << pstr(" Time: ") << dec << (timeB-timeA) << endl;
-    // if(D) db << pstr(" Time: seek ") << dec << seektime << pstr(" read ") << dec << readtime << pstr(" scrn ") << dec << scrntime << endl;
-
-}
-
 void PiScreen::printRawBitmap24(image_info * info,int frame) {
     
     // Bytes of color per pixel, this is the 565 + alpha format
@@ -2794,17 +2733,66 @@ void PiScreen::printRawBitmap24(image_info * info,int frame) {
     
 }
 
-void PiScreen::printRawBitmap24partial(SdFile tempFile,int imageStart,int x,int y,int imageWidth,int imageHeight,int imageXa,int imageYa,int imageXb,int imageYb) {
+void PiScreen::printPartialRawBitmap16(image_info * info,int frame) {
+
+    // Bytes of color per pixel this is the 565 format
+    int const dataBytes = 2;
+
+    setEntryMode(TOP_LEFT);
     
-    // if(D) db.printf("printRawBitmap24partial x %d y %d\r\n",x,y);
+    setXY(
+    info->x + info->x1,
+    info->y + info->y1,
+    info->x + info->x2,
+    info->y + info->y2);
     
-    // Bytes of color per pixel this is the 565 + alpha format
+    sbi(P_RS, B_RS);
+    
+    int byteCount;
+    int widthinbytes = info->width * dataBytes;
+    int windowWidthBytes = (info->x2 - info->x1 + 1) * dataBytes;
+    
+    // The start of the image
+    int imageStart = info->file_start + frame * dataBytes;
+    
+    // Offset in the x direction
+    imageStart += info->x1 * dataBytes;
+    
+    // Loop through the rows
+    for(int he=info->y1;he<=info->y2;he++) {
+    
+        // Seek to the start of the line to read 
+        info->file.seekSet(imageStart + he * widthinbytes);
+        
+        // Pull the data from the sdcard
+        byteCount = info->file.read(readBuffer,windowWidthBytes);
+        
+        // Print all of the pixels in this row
+        for(int i=0;i<byteCount;i+=2) {
+        
+            CLOCK_BUS_WORD(readBuffer[i],readBuffer[i + 1])
+
+        }
+        
+    }
+    
+    clrXY();
+    
+}
+
+void PiScreen::printPartialRawBitmap24(image_info * info,int frame) {
+// void PiScreen::printPartialRawBitmap24(SdFile tempFile,int imageStart,int x,int y,int imageWidth,int imageHeight,int imageXa,int imageYa,int imageXb,int imageYb) {
+    
+    // Bytes of color per pixel this is a 5658 RGBA format
     int const dataBytes = 3;
 
     setEntryMode(TOP_LEFT);
     
-    // Set the window that we want to print to [For some reason this needs to be after the above 'cbi' command]
-    setXY(x+imageXa,y+imageYa,x+imageXb,y+imageYb);
+    setXY(
+    info->x + info->x1,
+    info->y + info->y1,
+    info->x + info->x2,
+    info->y + info->y2);
     
     sbi(P_RS, B_RS);
     
@@ -2813,23 +2801,25 @@ void PiScreen::printRawBitmap24partial(SdFile tempFile,int imageStart,int x,int 
     int toRead = BUFFER_SIZE;
     toRead -= toRead % 3;
     
-    int imageBytes = imageWidth * imageHeight * dataBytes;
-
-    int widthinbytes = imageWidth * dataBytes;
-    int windowWidthBytes = (imageXb-imageXa+1)*dataBytes;
+    int widthinbytes = info->width * dataBytes;
+    int windowWidthBytes = (info->x2 - info->x1 + 1) * dataBytes;
     int byteCount;
     
-    imageStart += (imageXa)*dataBytes;    
+    // The start of the image
+    int imageStart = info->file_start + frame * dataBytes;
+    
+    // Offset in the x direction
+    imageStart += info->x1 * dataBytes;    
     
     // The flag that says we are skipping transparent stuff at the moment
     bool transparentSkipMode = false;
     
     // Loop through the rows
-    for(int he=imageYa;he<=imageYb;he++) {
+    for(int he=info->y1;he<=info->y2;he++) {
         
         // Pull the data from the sdcard
-        tempFile.seekSet(imageStart + he*widthinbytes);
-        bytesread = tempFile.read(readBuffer,windowWidthBytes);
+        info->file.seekSet(imageStart + he * widthinbytes);
+        bytesread = info->file.read(readBuffer,windowWidthBytes);
         
         // pixel;
     
@@ -2846,11 +2836,11 @@ void PiScreen::printRawBitmap24partial(SdFile tempFile,int imageStart,int x,int 
                     transparentSkipMode = false;
                 
                     // Go to the new position
-                    gotoXY(x + imageXa + pixel % ((imageXb - imageXa) + 1),y + imageYa + pixel / ((imageXb - imageXa) + 1));
+                    gotoXY(info->x + info->x1 + pixel % ((info->x2 - info->x1) + 1),info->y + info->y1 + pixel / ((info->x2 - info->x1) + 1));
                     
                     // if(D) db.printf("gotoXY(x %d,y %d); %d %d\r\n",
-                    // x + pixel % ((imageXb - imageXa) + 1),y + pixel / ((imageXb - imageXa) + 1),
-                    // pixel % ((imageXb - imageXa) + 1),pixel / ((imageXb - imageXa) + 1));
+                    // x + pixel % ((info->x2 - info->x1) + 1),y + pixel / ((info->x2 - info->x1) + 1),
+                    // pixel % ((info->x2 - info->x1) + 1),pixel / ((info->x2 - info->x1) + 1));
                     
                     // Go back into data writing mode
                     LCD_Write_COM(0x22); 
@@ -2877,11 +2867,11 @@ void PiScreen::printRawBitmap24partial(SdFile tempFile,int imageStart,int x,int 
                     transparentSkipMode = false;
                 
                     // Go to the new position
-                    gotoXY(x + imageXa + pixel % ((imageXb - imageXa) + 1),y + imageYa + pixel / ((imageXb - imageXa) + 1));
+                    gotoXY(info->x + info->x1 + pixel % ((info->x2 - info->x1) + 1),info->y + info->y1 + pixel / ((info->x2 - info->x1) + 1));
                     
                     // if(D) db.printf("gotoXY(x %d,y %d); %d %d\r\n",
-                    // x + pixel % ((imageXb - imageXa) + 1),y + pixel / ((imageXb - imageXa) + 1),
-                    // pixel % ((imageXb - imageXa) + 1),pixel / ((imageXb - imageXa) + 1));
+                    // x + pixel % ((info->x2 - info->x1) + 1),y + pixel / ((info->x2 - info->x1) + 1),
+                    // pixel % ((info->x2 - info->x1) + 1),pixel / ((info->x2 - info->x1) + 1));
                     
                     // Go back into data writing mode
                     LCD_Write_COM(0x22); 

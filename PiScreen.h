@@ -225,6 +225,8 @@ class PiScreen {
         
         bool printImage(char * filename,int x,int y,int frame = 0);
         bool printImage(image_info * info,int frame = 0);
+        bool printImage(image_info * info,int x1,int y1,int x2,int y2) { printImage(info,0,x1,y1,x2,y2); }
+        bool printImage(image_info * info,int frame,int x1,int y1,int x2,int y2);
         
         void mergeImages(SdFile * newFile,SdFile * backFile,SdFile * frontFile,int x,int y,int frame);
 
@@ -259,9 +261,8 @@ class PiScreen {
         void printRawBitmap16(image_info * info,int frame); 
         void printRawBitmap24(image_info * info,int frame);
         
-        void printRawBitmap24partial(SdFile tempFile,int imageStart,int x,int y,int imageWidth,int imageHeight,int imageXa,int imageYa,int imageXb,int imageYb);
-        
-        void printRawPartialBitmap16(SdFile tempFile,int imageStart,int x,int y,int imageWidth,int imageHeight,int imageXa,int imageYa,int imageXb,int imageYb); 
+        void printPartialRawBitmap16(image_info * info,int frame); 
+        void printPartialRawBitmap24(image_info * info,int frame);
         
         void printBitmap16(image_info * info); 
         void printBitmap24(image_info * info); 
