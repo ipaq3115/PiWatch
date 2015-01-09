@@ -2,21 +2,29 @@
 #include <pins_arduino.h>
 #include "PiScreen.h"
 
-// Temporary while another port setup is tested
-// #define PORT_SHUFFLE
-
-#ifdef PORT_SHUFFLE
-    
-    // Port B
-    #define WRITE_BUS_BYTE(x) GPIOB_PCOR = 0x000F000F; GPIOB_PSOR = (0x0F & x) | ((x >> 4) << 16);
-    
-#else
+#ifdef USE_328
 
     // Port D
-    #define WRITE_BUS_BYTE(x) *(volatile uint8_t *)(&GPIOD_PDOR) = x;
+    #define WRITE_BUS_BYTE(x) PORTD = x;
+    
+    // #define imagetype:: IMTYPE_
+
+#else
+
+    #ifdef PORT_SHUFFLE
+        
+        // Port B
+        #define WRITE_BUS_BYTE(x) GPIOB_PCOR = 0x000F000F; GPIOB_PSOR = (0x0F & x) | ((x >> 4) << 16);
+        
+    #else
+
+        // Port D
+        #define WRITE_BUS_BYTE(x) *(volatile uint8_t *)(&GPIOD_PDOR) = x;
+
+    #endif
 
 #endif
-
+    
 #define CLOCK_BUS_BYTE(x) WRITE_BUS_BYTE(x) pulse_low(P_WR, B_WR);
 #define CLOCK_BUS_WORD(hi,lo) CLOCK_BUS_BYTE(hi) CLOCK_BUS_BYTE(lo)
 
@@ -48,13 +56,23 @@ PiScreen::PiScreen() {
     
     _set_direction_registers();
     
-    int const RS  = 27;
-    int const WR  = 28;
+    #ifdef USE_328
 
-    #ifdef PORT_SHUFFLE
-        int const RST = 33;
+        uint8_t const RS = 8;
+        uint8_t const WR = 9;
+        uint8_t const RST = 10;
+    
     #else
-        int const RST = 29;
+    
+        int const RS  = 27;
+        int const WR  = 28;
+
+        #ifdef PORT_SHUFFLE
+            int const RST = 33;
+        #else
+            int const RST = 29;
+        #endif
+
     #endif
     
     P_RS     = portOutputRegister(digitalPinToPort(RS));
@@ -69,35 +87,6 @@ PiScreen::PiScreen() {
     pinMode(WR,OUTPUT);
     pinMode(RST,OUTPUT);
     
-}
-
-void PiScreen::LCD_Write_COM(char VL) {
-
-    cbi(P_RS, B_RS);
-    LCD_Writ_Bus(0x00,VL);
-
-}
-
-void PiScreen::LCD_Write_DATA(char VH,char VL) {
-
-
-    sbi(P_RS, B_RS);
-    LCD_Writ_Bus(VH,VL);
-    
-}
-
-void PiScreen::LCD_Write_DATA(char VL) {
-
-
-    sbi(P_RS, B_RS);
-    LCD_Writ_Bus(0x00,VL);
-    
-}
-
-void PiScreen::LCD_Write_COM_DATA(char com1,int dat1) {
-
-    LCD_Write_COM(com1);
-    LCD_Write_DATA(dat1>>8,dat1);
 }
 
 void PiScreen::InitLCD(byte orientation) {
@@ -188,6 +177,35 @@ void PiScreen::InitLCD(byte orientation) {
     _transparent = false;
     setEntryMode(TOP_LEFT);
     
+}
+
+void PiScreen::LCD_Write_COM(char VL) {
+
+    cbi(P_RS, B_RS);
+    LCD_Writ_Bus(0x00,VL);
+
+}
+
+void PiScreen::LCD_Write_DATA(char VH,char VL) {
+
+
+    sbi(P_RS, B_RS);
+    LCD_Writ_Bus(VH,VL);
+    
+}
+
+void PiScreen::LCD_Write_DATA(char VL) {
+
+
+    sbi(P_RS, B_RS);
+    LCD_Writ_Bus(0x00,VL);
+    
+}
+
+void PiScreen::LCD_Write_COM_DATA(char com1,int dat1) {
+
+    LCD_Write_COM(com1);
+    LCD_Write_DATA(dat1>>8,dat1);
 }
 
 void PiScreen::setXY(word x1, word y1, word x2, word y2) {
@@ -435,7 +453,7 @@ void PiScreen::fillRect(int x1, int y1, int x2, int y2) {
     
     sbi(P_RS, B_RS);
     
-    for(int i=0;i<((x2-x1)*(y2-y1));i++) {
+    for(uint16_t i=0;i<((x2-x1+1)*(y2-y1+1));i++) {
     
         CLOCK_BUS_WORD(fch,fcl);
     
@@ -1364,7 +1382,7 @@ void PiScreen::mergeImages(SdFile * newFile,SdFile * backFile,SdFile * frontFile
     
     int timeB = micros();
     
-    Serial.printf("time merge %d\r\n",timeB-timeA);
+    // Serial.printf("time merge %d\r\n",timeB-timeA);
 
 }
 
@@ -1593,6 +1611,8 @@ bool PiScreen::printImage(image_info * info,int frame,int x1,int y1,int x2,int y
 
 void PiScreen::printImageInfo(image_info * info) {
 
+    #ifdef db
+
     Serial.printf("Image Info: %s\r\n",info->filename);
     Serial.printf("x %d\r\n",info->x);
     Serial.printf("y %d\r\n",info->y);
@@ -1612,7 +1632,8 @@ void PiScreen::printImageInfo(image_info * info) {
         
     }
     
-
+    #endif
+    
 }
 
 // Bitmap
@@ -2752,8 +2773,10 @@ void PiScreen::printPartialRawBitmap16(image_info * info,int frame) {
     int widthinbytes = info->width * dataBytes;
     int windowWidthBytes = (info->x2 - info->x1 + 1) * dataBytes;
     
+    int imageBytes = info->width * info->height * dataBytes; 
+    
     // The start of the image
-    int imageStart = info->file_start + frame * dataBytes;
+    int imageStart = info->file_start + frame * imageBytes;
     
     // Offset in the x direction
     imageStart += info->x1 * dataBytes;
@@ -3110,30 +3133,38 @@ void PiScreen::LCD_Writ_Bus(char VH,char VL) {
 
 void PiScreen::_set_direction_registers() {
 
-    #ifndef PORT_SHUFFLE
+    #ifdef USE_328
 
-        GPIOD_PDDR |= 0xFF;
-        PORTD_PCR0  = PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
-        PORTD_PCR1  = PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
-        PORTD_PCR2  = PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
-        PORTD_PCR3  = PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
-        PORTD_PCR4  = PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
-        PORTD_PCR5  = PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
-        PORTD_PCR6  = PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
-        PORTD_PCR7  = PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
-
+        DDRD = 0xFF;
+    
     #else
     
-		GPIOB_PDDR |= 0x000F000F;
-		PORTB_PCR0  = PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
-		PORTB_PCR1  = PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
-		PORTB_PCR2  = PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
-		PORTB_PCR3  = PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
-		PORTB_PCR16 = PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
-		PORTB_PCR17 = PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
-		PORTB_PCR18 = PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
-		PORTB_PCR19 = PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
-    
+        #ifndef PORT_SHUFFLE
+
+            GPIOD_PDDR |= 0xFF;
+            PORTD_PCR0  = PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
+            PORTD_PCR1  = PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
+            PORTD_PCR2  = PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
+            PORTD_PCR3  = PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
+            PORTD_PCR4  = PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
+            PORTD_PCR5  = PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
+            PORTD_PCR6  = PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
+            PORTD_PCR7  = PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
+
+        #else
+        
+            GPIOB_PDDR |= 0x000F000F;
+            PORTB_PCR0  = PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
+            PORTB_PCR1  = PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
+            PORTB_PCR2  = PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
+            PORTB_PCR3  = PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
+            PORTB_PCR16 = PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
+            PORTB_PCR17 = PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
+            PORTB_PCR18 = PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
+            PORTB_PCR19 = PORT_PCR_SRE | PORT_PCR_DSE | PORT_PCR_MUX(1);
+        
+        #endif
+        
     #endif
     
 }

@@ -10,6 +10,12 @@
 #ifndef PiScreen_
 #define PiScreen_
 
+// Temporary while another port setup is tested
+// #define PORT_SHUFFLE
+
+// Testing out using with the 328
+// #define USE_328
+
 // Uncomment this line to use sdfat instead of the normal Arduino SD library
 #define USE_SDFAT
 
@@ -33,27 +39,49 @@
 #define LANDSCAPE 3
 
 // *** Hardwarespecific defines ***
-#define cbi(reg, bitmask) *reg &= ~bitmask
-#define sbi(reg, bitmask) *reg |= bitmask
-#define pulse_high(reg, bitmask) sbi(reg, bitmask); cbi(reg, bitmask);
-#define pulse_low(reg, bitmask) cbi(reg, bitmask); sbi(reg, bitmask);
+#ifdef USE_328
 
-#define cport(port, data) port &= data
-#define sport(port, data) port |= data
+    #define cbi(reg, bitmask) *reg &= ~bitmask
+    #define sbi(reg, bitmask) *reg |= bitmask
+    #define pulse_high(reg, bitmask) sbi(reg, bitmask); cbi(reg, bitmask);
+    #define pulse_low(reg, bitmask) cbi(reg, bitmask); sbi(reg, bitmask);
 
-#define swap(type, i, j) {type t = i; i = j; j = t;}
+    #define cport(port, data) port &= data
+    #define sport(port, data) port |= data
 
-#define fontbyte(x) cfont.font[x]  
+    #define swap(type, i, j) {type t = i; i = j; j = t;}
 
-#define pgm_read_word(data) *data
-#define pgm_read_byte(data) *data
+    #define fontbyte(x) pgm_read_byte(&cfont.font[x])  
 
-#if defined(TEENSYDUINO) && TEENSYDUINO >= 117
-  #define regtype volatile uint8_t
-  #define regsize uint8_t
+    #define regtype volatile uint8_t
+    #define regsize uint8_t
+    #define bitmapdatatype unsigned int*
+
 #else
-  #define regtype volatile uint32_t
-  #define regsize uint32_t
+
+    #define cbi(reg, bitmask) *reg &= ~bitmask
+    #define sbi(reg, bitmask) *reg |= bitmask
+    #define pulse_high(reg, bitmask) sbi(reg, bitmask); cbi(reg, bitmask);
+    #define pulse_low(reg, bitmask) cbi(reg, bitmask); sbi(reg, bitmask);
+
+    #define cport(port, data) port &= data
+    #define sport(port, data) port |= data
+
+    #define swap(type, i, j) {type t = i; i = j; j = t;}
+
+    #define fontbyte(x) cfont.font[x]  
+
+    #define pgm_read_word(data) *data
+    #define pgm_read_byte(data) *data
+
+    #if defined(TEENSYDUINO) && TEENSYDUINO >= 117
+        #define regtype volatile uint8_t
+        #define regsize uint8_t
+    #else
+        #define regtype volatile uint32_t
+        #define regsize uint32_t
+    #endif
+
 #endif
 
 #define bitmapdatatype unsigned short*
@@ -108,6 +136,20 @@ struct _current_font
     uint8_t numchars;
 };
 
+#ifdef USE_328
+
+namespace imagetype {
+
+int const
+AUTO = 0,
+NONE = 1,
+BITMAP = 2,
+GCI = 3;
+
+}
+
+#else
+
 enum class imagetype : byte {
 
     AUTO,
@@ -116,6 +158,8 @@ enum class imagetype : byte {
     GCI,
 
 };
+
+#endif
 
 struct image_info {
     
@@ -137,7 +181,11 @@ struct image_info {
     int frame_delay;
     int file_start;
     int bits;
-    imagetype type;
+    #ifdef USE_328
+        int type;
+    #else
+        imagetype type;
+    #endif
     char filename[20];
     SdFile file;
 
@@ -153,6 +201,7 @@ enum lcd_corner_start {
 
 };
 
+#ifndef USE_328
 char const entryStrings[4][20] {
 
     "TOP_LEFT",
@@ -161,6 +210,12 @@ char const entryStrings[4][20] {
     "BOTTOM_RIGHT",
 
 };
+#endif
+
+
+#ifdef USE_328
+int const BITMAP_LINES_TO_BUFFER = 10;
+#endif
 
 class PiScreen {
 
@@ -305,20 +360,30 @@ class PiScreen {
         
         // static bool D;
         // bool D = true;
+        #ifndef USE_328
         int const BITMAP_LINES_TO_BUFFER = 90;
+        #endif
         // int const BITMAP_LINES_TO_BUFFER = 113;
         
         int strMatch(char* mystring,char* searchstring);
         int strLength(char* string);
         
         
+        #ifndef USE_328
         static int const BUFFER_SIZE = 35000;
         // static int const BUFFER_SIZE = 40000;
+        #else
+        static int const BUFFER_SIZE = 500;
+        #endif
         byte readBuffer[BUFFER_SIZE];
         
         // Storing variables for a loaded video so that frames can just be pulled
         SdFile video;
+        #ifndef USE_328
         bool videoLoaded = false;
+        #else
+        bool videoLoaded;
+        #endif
         int videoStart,videoX,videoY,videoW,videoH,videoFrames;
         
         // saving the current info about the background image
