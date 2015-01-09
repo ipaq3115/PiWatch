@@ -224,17 +224,18 @@ class PiScreen {
         void printBackground();
         
         bool printImage(char * filename,int x,int y,int frame = 0);
+        
+        bool printImage(image_info * info,int x,int y,int frame = 0) {
+        
+            info->x = x; info->y = y;
+            printImage(info,frame);
+        
+        }
         bool printImage(image_info * info,int frame = 0);
         bool printImage(image_info * info,int x1,int y1,int x2,int y2) { printImage(info,0,x1,y1,x2,y2); }
         bool printImage(image_info * info,int frame,int x1,int y1,int x2,int y2);
         
         void mergeImages(SdFile * newFile,SdFile * backFile,SdFile * frontFile,int x,int y,int frame);
-
-        
-        void printBitmap(SdFile tmpFile,int x,int y); 
-        void printBitmap(SdFile tmpFile,int x,int y,int imageXa,int imageYa,int imageXb,int imageYb); 
-        void printBitmap(SdFile tmpFile,int x,int y,bool partialPrint,int imageXa,int imageYa,int imageXb,int imageYb,bool isbackground); 
-
 
         int  loadVideo(SdFile tmpFile,int x,int y);
         void videoFrame(int frame) { videoFrame(frame,9999,9999); }
@@ -247,11 +248,15 @@ class PiScreen {
             int imageStart,int x,int y,int imageWidth,int imageHeight,
             int imageStartBack,int xBack,int yBack,int imageWidthBack,int imageHeightBack,
             int imageXa,int imageYa,int imageXb,int imageYb);
-            
-        void printRaw(SdFile tmpFile,int x,int y); 
-        void printRaw(SdFile tmpFile,int x,int y,int frame); 
-        void printRaw(SdFile tmpFile,int x,int y,int frame,int imageXa,int imageYa,int imageXb,int imageYb,bool inverse = false); 
-        void printRaw(SdFile tmpFile,int x,int y,int frame,bool partialPrint,bool inverse,int imageXa,int imageYa,int imageXb,int imageYb); 
+        
+        // void printBitmap(SdFile tmpFile,int x,int y)  {}
+        // void printBitmap(SdFile tmpFile,int x,int y,int imageXa,int imageYa,int imageXb,int imageYb)  {}
+        // void printBitmap(SdFile tmpFile,int x,int y,bool partialPrint,int imageXa,int imageYa,int imageXb,int imageYb,bool isbackground)  {}
+        
+        // void printRaw(SdFile tmpFile,int x,int y) {}
+        // void printRaw(SdFile tmpFile,int x,int y,int frame)  {}
+        // void printRaw(SdFile tmpFile,int x,int y,int frame,int imageXa,int imageYa,int imageXb,int imageYb,bool inverse = false)  {}
+        // void printRaw(SdFile tmpFile,int x,int y,int frame,bool partialPrint,bool inverse,int imageXa,int imageYa,int imageXb,int imageYb)  {}
         
         void printErrorImage(int x1,int y1);
         void printErrorImage(int x1,int y1,int frame);
