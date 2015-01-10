@@ -44,7 +44,7 @@ private:
 
 static IntervalTimer vibrateTimer;
 static bool vibrateState;
-int brightness = 100;
+int brightness = 0;
 
 static void vibrateOffISR() {
 
@@ -84,7 +84,13 @@ static void setupPins() {
 
 int rawBrightness() {
 
-    int actualBrightness = 255.0 * (float)brightness/100.0;
+    return rawBrightness(brightness);
+    
+}
+
+int rawBrightness(int tmpBrightness) {
+
+    int actualBrightness = 255.0 * (float)tmpBrightness/100.0;
     if(actualBrightness < 10) actualBrightness = 10;
     // analogWrite(PIN::LCD_BACKLIGHT, actualBrightness);
 
@@ -161,38 +167,46 @@ bool getVibrateState() {
 }
 
 // TODO: Make this non blocking
-void rampBrightness(bool dir) {
+void rampBrightness(int value) {
 
     using namespace PIN;
     
     int const speed = 2;
     
-    if(dir) {
+    if(value > 100) value = 100;
+    if(value < 0) value = 0;
+
+    if(value > brightness) {
     
         // Take about 1/4 of a second to fade in
-        for(int i=0;i<=rawBrightness();i+=speed) {
+        for(int i=rawBrightness();i<=rawBrightness(value);i+=speed) {
         
             analogWrite(LCD_BACKLIGHT, i);
             delay(1);
             
         }
+        
+        brightness = value;
         
         analogWrite(LCD_BACKLIGHT, rawBrightness());
         
-    } else {
+    } else if(value < brightness) {
 
         // Take about 1/4 of a second to fade out
-        for(int i=rawBrightness();i>=0;i-=speed) {
+        for(int i=rawBrightness();i>=rawBrightness(value);i-=speed) {
         
             analogWrite(LCD_BACKLIGHT, i);
             delay(1);
             
         }
         
-        analogWrite(LCD_BACKLIGHT, 0);
-    
+        brightness = value;
+        
+        analogWrite(LCD_BACKLIGHT, rawBrightness());
+        
     }
     
+
 }
 
 void setBrightness(int value) {
@@ -202,9 +216,9 @@ void setBrightness(int value) {
     if(value > 100) value = 100;
     if(value < 0) value = 0;
 
-    brightness = value;
+    if(brightness != value) analogWrite(PIN::LCD_BACKLIGHT, rawBrightness(value));
 
-    analogWrite(PIN::LCD_BACKLIGHT, rawBrightness());
+    brightness = value;
     
 }
 
