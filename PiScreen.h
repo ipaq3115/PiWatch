@@ -196,7 +196,7 @@ class PiScreen {
         word            getBackColor();
         void            print(char *st, int x=CENTER, int y=CENTER, int deg=0);
         void            print(String st, int x=CENTER, int y=CENTER, int deg=0);
-        void            print(char *st,SdFile imageFont,int x,int y,SdFile imageBack,int xBack,int yBack,int frameBack,int transparencyColor=-1,int space=0);
+        void            print(char *st,image_info * imageFont,int x,int y,image_info * imageBack,int xBack,int yBack,int frameBack,int transparencyColor=-1,int space=0);
         void            printNumI(long num, int x, int y, int length=0, char filler=' ');
         void            printNumF(double num, byte dec, int x, int y, char divider='.', int length=0, char filler=' ');
         static void     setFont(uint8_t* font);
@@ -225,13 +225,22 @@ class PiScreen {
         
         bool printImage(char * filename,int x,int y,int frame = 0);
         
-        bool printImage(image_info * info,int x,int y,int frame = 0) {
+        bool printImage(image_info * info,int frame = 0);
         
-            info->x = x; info->y = y;
-            printImage(info,frame);
+        bool printImage(image_info * info,int x,int y,int frame = 0) { 
+            
+            info->x = x; info->y = y; 
+            printImage(info,frame); 
+            
+        }
+        
+        bool printImage(image_info * info,int x,int y,int frame,int x1,int y1,int x2,int y2) { 
+            
+            info->x = x; info->y = y; 
+            printImage(info,frame,x1,y1,x2,y2); 
         
         }
-        bool printImage(image_info * info,int frame = 0);
+        
         bool printImage(image_info * info,int x1,int y1,int x2,int y2) { printImage(info,0,x1,y1,x2,y2); }
         bool printImage(image_info * info,int frame,int x1,int y1,int x2,int y2);
         

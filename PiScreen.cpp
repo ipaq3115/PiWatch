@@ -910,50 +910,50 @@ void PiScreen::print(char *st, int x, int y, int deg) {
     
 }
 
-void PiScreen::print(char *st,SdFile imageFont,int x,int y,SdFile imageBack,int xBack,int yBack,int frameBack,int transparencyColor,int space) {
+void PiScreen::print(char *st,image_info * imageFont,int x,int y,image_info * imageBack,int xBack,int yBack,int frameBack,int transparencyColor,int space) {
 
     #ifdef USE_SDFAT
-        if(!imageFont.isOpen()) return;
+        if(!imageFont->file.isOpen()) return;
     #else
-        if(!imageFont) return;
+        if(!imageFont->file) return;
     #endif
-    
     
     int strLength, i;
     
-    imageFont.seekSet(0);
+    // imageFont->file.seekSet(0);
 
-    int fontWidth = (imageFont.read() << 8) + imageFont.read();
-    int fontHeight = (imageFont.read() << 8) + imageFont.read(); 
+    // int fontWidth = (imageFont.read() << 8) + imageFont.read();
+    // int fontHeight = (imageFont.read() << 8) + imageFont.read(); 
 
     strLength = strlen(st);
     
-    int stringWidth = strLength * fontWidth + (strLength - 1) * space;
+    int stringWidth = strLength * imageFont->width + (strLength - 1) * space;
 
     if(orient == PORTRAIT) {
     
         if(x == RIGHT)  x =  (disp_x_size + 1) - stringWidth;
         if(x == CENTER) x = ((disp_x_size + 1) - stringWidth) / 2;
-        if(y == CENTER) y = ((disp_y_size + 1) - fontHeight) / 2;
+        if(y == CENTER) y = ((disp_y_size + 1) - imageFont->height) / 2;
     
     } else {
     
         if(x == RIGHT)  x =  (disp_y_size + 1) - stringWidth;
         if(x == CENTER) x = ((disp_y_size + 1) - stringWidth) / 2;
-        if(y == CENTER) y = ((disp_y_size + 1) - fontHeight) / 2;
+        if(y == CENTER) y = ((disp_y_size + 1) - imageFont->height) / 2;
     
     }
 
     if(transparencyColor == -1) {
         
-        for(i=0; i<strLength; i++) printRaw(imageFont,x + fontWidth * i - space * i,y,st[i] - '!');
+        for(i=0; i<strLength; i++) printImage(imageFont,x + imageFont->width * i - space * i,y,st[i] - '!');
     
     } else {
        
-        for(i=0; i<strLength; i++) printRawTransparent(
-        transparencyColor,
-        imageFont,x + fontWidth * i - space * i,y,st[i] - '!',
-        imageBack,xBack,yBack,frameBack);
+       // TODO: fix this
+        // for(i=0; i<strLength; i++) printRawTransparent(
+        // transparencyColor,
+        // imageFont,x + imageFont->width * i - space * i,y,st[i] - '!',
+        // imageBack,xBack,yBack,frameBack);
     
     }
     
