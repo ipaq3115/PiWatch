@@ -435,7 +435,7 @@ void PiScreen::fillRect(int x1, int y1, int x2, int y2) {
     
     sbi(P_RS, B_RS);
     
-    for(int i=0;i<((x2-x1)*(y2-y1));i++) {
+    for(int i=0;i<((x2-x1+1)*(y2-y1+1));i++) {
     
         CLOCK_BUS_WORD(fch,fcl);
     
@@ -1984,6 +1984,9 @@ int PiScreen::loadVideo(SdFile tmpFile,int x,int y) {
         videoX = x;
         videoY = y;
         
+        setXY(x,y,x + videoW - 1,y + videoH - 1);
+        sbi(P_RS, B_RS);
+        
         return videoFrames;
 
     }
@@ -1996,10 +1999,13 @@ int PiScreen::loadVideo(SdFile tmpFile,int x,int y) {
 
 void PiScreen::videoFrame(int frame,int x,int y) {
 
-    // int timeA = micros();
-
+    int ta = micros();
+    
+    // int sdt = 0,tmp,lcdt = 0;
+    // int bytesClocked = 0;
+   
     // Don't bother if there is no image loaded
-    if(!videoLoaded) return;
+    // if(!videoLoaded) return;
 
     // If x and y values weren't entered then use the video position
     if(x == 9999) x = videoX;
@@ -2015,14 +2021,8 @@ void PiScreen::videoFrame(int frame,int x,int y) {
     int widthinbytes = videoW * dataBytes;
 
     // setEntryMode(TOP_LEFT);
-    setXY(x,y,x + videoW - 1,y + videoH - 1);
-    sbi(P_RS, B_RS);
-    
-    // int timeA = micros();
-    
-    int total = BUFFER_SIZE;
-    
-    // int imageStart = frame * videoW * videoH * dataBytes;
+    // setXY(x,y,x + videoW - 1,y + videoH - 1);
+    // sbi(P_RS, B_RS);
     
     int toRead = BUFFER_SIZE;
     toRead -= toRead % dataBytes;
@@ -2030,6 +2030,9 @@ void PiScreen::videoFrame(int frame,int x,int y) {
     int frameBytes = videoW * videoH * dataBytes; 
     
     video.seekSet(videoStart + frame * frameBytes);
+    
+    byte * readBufferPtr;
+    byte * ending;
     
     // Loop through the bytes of data in the image
     for(int byteCount=0;byteCount<frameBytes;byteCount += toRead) {
@@ -2039,21 +2042,31 @@ void PiScreen::videoFrame(int frame,int x,int y) {
         // Pull the data from the sdcard
         bytesread = video.read(readBuffer,toRead);
         
+        readBufferPtr = readBuffer;
+        ending = readBufferPtr + bytesread;
+    
         // Iterate through the data that was buffered
-        for(int i=0;i<bytesread;i+=dataBytes) {
+        while(readBufferPtr < ending) {
         
-            CLOCK_BUS_WORD(readBuffer[i],readBuffer[i + 1])
+            CLOCK_BUS_WORD(*(readBufferPtr++),*(readBufferPtr++))
             
         }
         
     }
 
-    // int timeB = micros();
+    int tb = micros();
     
-    // if(D) db.printf("fps %05.3f\r\n",(double)1000000/(timeB-timeA));
-    // if(D) db.printf("time %05d\r\n",timeB-timeA);
+    Serial.printf("time %d fps %d",tb-ta,1000000/(tb-ta));
     
-    // clrXY();
+    
+    aaa_buf[aaa_count] = tb-ta;
+    aaa_count++; if(aaa_count > 99) aaa_count = 0;
+    
+    uint64_t avg = 0;
+    for(int i=0;i<100;i++) avg += aaa_buf[i];
+    avg /= 100;
+    
+    Serial.printf(" avg %d\r\n",avg);
     
     /*
     NOTE!!!
@@ -2378,6 +2391,8 @@ void PiScreen::printRawBitmap16(image_info * info,int frame) {
     }
     
     clrXY();
+    
+    
     
 }
 

@@ -104,11 +104,11 @@ PiWatch() {}
 
 static void init() {
 
-    hVer = EEPROM.read(0);
-    #ifdef db
-        db.printf("hardware %d %s\r\n",hVer,hVer == 0 ? "REVA" : "REVB");
-    #endif
-    if(hVer != HARDWARE_REVA && hVer != HARDWARE_REVB) hVer = HARDWARE_REVB; 
+    // hVer = EEPROM.read(0);
+    // #ifdef db
+    //     db.printf("hardware %d %s\r\n",hVer,hVer == 0 ? "REVA" : "REVB");
+    // #endif
+    // if(hVer != HARDWARE_REVA && hVer != HARDWARE_REVB) hVer = HARDWARE_REVB; 
     hVer = HARDWARE_REVB;
     
     setupPins();

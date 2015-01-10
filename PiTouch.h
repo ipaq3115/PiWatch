@@ -368,8 +368,9 @@ static void touchReader() {
     
         // prep the next update
         state = START_WAIT;
-        primaryTimer.begin(touchReader, 2000);
+        // primaryTimer.begin(touchReader, 2000);
         // primaryTimer.begin(touchReader, 5000);
+        primaryTimer.begin(touchReader, 20000);
         
     }
 

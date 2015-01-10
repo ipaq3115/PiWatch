@@ -165,7 +165,10 @@ char const entryStrings[4][20] {
 class PiScreen {
 
     public:
-    
+        
+        int aaa_buf[100];
+        int aaa_count = 0;
+        
         PiScreen();
         
         static void     InitLCD(byte orientation = LANDSCAPE);
