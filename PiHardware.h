@@ -26,7 +26,6 @@ namespace PIN { // Pin definitions
 
 class PiHardware {
 
-
 protected:
 
 static IntervalTimer vibrateTimer;

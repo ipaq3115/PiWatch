@@ -23,7 +23,8 @@ struct touch_event {
 };
 
 int const TOUCH_BUFFER_MAX = 20;
-int const SENSOR_BUFFER_MAX = 20;
+int const SENSOR_BUFFER_MAX = 2;
+// int const SENSOR_BUFFER_MAX = 20;
 int const MAX_TOUCHES = 5;
 int const PI_TOUCH_PIN_TOTAL = 10;
 
