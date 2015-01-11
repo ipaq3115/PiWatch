@@ -63,10 +63,10 @@ int const PI_TOUCH_PIN_TOTAL = 10;
     // const int touchPin[PI_TOUCH_PIN_TOTAL] = {25,16,17, 0, 1,32,22,23,33,15}; // Old
 // #endif
     
-extern volatile int hVer;
+const int touchPin[PI_TOUCH_PIN_TOTAL] = {17,16,33,23,22,15,25,32, 1, 0};
     
-const int touchPinA[PI_TOUCH_PIN_TOTAL] = {25,16,17, 0, 1,32,22,23,33,15}; // Old
-const int touchPinB[PI_TOUCH_PIN_TOTAL] = {17,16,33,23,22,15,25,32, 1, 0}; // New
+// const int touchPinA[PI_TOUCH_PIN_TOTAL] = {25,16,17, 0, 1,32,22,23,33,15}; // Old
+// const int touchPinB[PI_TOUCH_PIN_TOTAL] = {17,16,33,23,22,15,25,32, 1, 0}; // New
 
 // Uncomment this line to go int loop mode, this is mainly just for debugging
 // without all of the funness that is interrupts
@@ -153,7 +153,7 @@ static void touchInit(void (*callbackTmp)(int,int,int,int)) {
     
     for(int i=0;i<PI_TOUCH_PIN_TOTAL;i++) {
     
-        uint8_t pin = (hVer == 0 ? touchPinA[i] : touchPinB[i]);
+        uint8_t pin = (touchPin[i]);
     
         *portConfigRegister(pin) = PORT_PCR_MUX(0);
         TSI0_PEN |= (1 << pin2tsi[pin]);
@@ -181,7 +181,7 @@ static void restartTouch() {
     
     for(int i=0;i<PI_TOUCH_PIN_TOTAL;i++) {
     
-        uint8_t pin = (hVer == 0 ? touchPinA[i] : touchPinB[i]);
+        uint8_t pin = (touchPin[i]);
     
         *portConfigRegister(pin) = PORT_PCR_MUX(0);
         TSI0_PEN |= (1 << pin2tsi[pin]);
@@ -292,7 +292,7 @@ static void calCapacitive() {
 
         for(int n=0;n<PI_TOUCH_PIN_TOTAL;n++) {
         
-            ch = pin2tsi[hVer == 0 ? touchPinA[n] : touchPinB[n]];
+            ch = pin2tsi[touchPin[n]];
             
             calValue[n] += *((volatile uint16_t *)(&TSI0_CNTR1) + ch);
             
@@ -341,7 +341,7 @@ static void touchReader() {
         // Read all of the pad values out
         for(int i=0;i<PI_TOUCH_PIN_TOTAL;i++) {
         
-            ch = pin2tsi[hVer == 0 ? touchPinA[i] : touchPinB[i]];
+            ch = pin2tsi[touchPin[i]];
             
             sensorBuffer[i][sensorBufferCounter] = *((volatile uint16_t *)(&TSI0_CNTR1) + ch) - calValue[i];
             
