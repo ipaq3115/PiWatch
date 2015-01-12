@@ -28,9 +28,20 @@ class PiHardware {
 
 protected:
 
+// The interrupt timer for brightness fading
+static IntervalTimer brightnessTimer;
+
+// The brightness that has been requested -1 - 255 [-1 indicates no fading is going on currently]
+static volatile int brightnessTarget;
+
+// Keeps track of brightness while fading is going on 0 - 255
+static volatile int currentBrightness;
+
+// Keeps track of the user set brigtness 0 - 100
+static volatile int brightness;
+
 static IntervalTimer vibrateTimer;
 static bool vibrateState;
-int brightness = 0;
 
 static void vibrateOffISR() {
 
@@ -68,13 +79,13 @@ static void setupPins() {
     
 }
 
-int rawBrightness() {
+static int rawBrightness() {
 
     return rawBrightness(brightness);
     
 }
 
-int rawBrightness(int tmpBrightness) {
+static int rawBrightness(int tmpBrightness) {
 
     int actualBrightness = 255.0 * (float)tmpBrightness/100.0;
     if(actualBrightness < 10) actualBrightness = 10;
@@ -84,13 +95,35 @@ int rawBrightness(int tmpBrightness) {
     
 }
 
-public:
+static void brightnessUpdate() {
 
+    if(currentBrightness < brightnessTarget) {
+    
+        currentBrightness++;
+    
+    } else if(currentBrightness > brightnessTarget) {
+    
+        currentBrightness--;
+    }
+
+    analogWrite(PIN::LCD_BACKLIGHT, currentBrightness);
+    
+    if(currentBrightness == brightnessTarget) {
+    
+        brightnessTimer.end();
+        
+        brightnessTarget = -1;
+        
+        setBrightness(currentBrightness / 2.55);
+    
+    }
+
+}
+
+public:
 
 void powerDown() {
 
-    // delay(2000);
-    
     digitalWrite(PIN::SYSTEM_POWER, LOW);
     
     while(true) {
@@ -120,50 +153,52 @@ bool getVibrateState() {
 
 }
 
-// TODO: Make this non blocking
-void rampBrightness(int value) {
+void rampBrightnessWait(int value,int speed = 100) {
+    
+    rampBrightness(value,speed);
 
-    using namespace PIN;
+    elapsedMillis time;
     
-    int const speed = 2;
+    while(1) {
     
-    if(value > 100) value = 100;
-    if(value < 0) value = 0;
-
-    if(value > brightness) {
-    
-        // Take about 1/4 of a second to fade in
-        for(int i=rawBrightness();i<=rawBrightness(value);i+=speed) {
+        if(time > 5) {
         
-            analogWrite(LCD_BACKLIGHT, i);
-            delay(1);
+            time = 0;
+            
+            int tmp;
+            
+            cli(); 
+            tmp = brightnessTarget; 
+            sei();
+            
+            if(tmp == -1) return;
             
         }
-        
-        brightness = value;
-        
-        analogWrite(LCD_BACKLIGHT, rawBrightness());
-        
-    } else if(value < brightness) {
-
-        // Take about 1/4 of a second to fade out
-        for(int i=rawBrightness();i>=rawBrightness(value);i-=speed) {
-        
-            analogWrite(LCD_BACKLIGHT, i);
-            delay(1);
-            
-        }
-        
-        brightness = value;
-        
-        analogWrite(LCD_BACKLIGHT, rawBrightness());
-        
+    
     }
     
-
 }
 
-void setBrightness(int value) {
+void rampBrightness(int value,int speed = 100) {
+
+    if(value == brightness) return;
+
+    brightnessTimer.end();
+    
+    brightnessTarget = rawBrightness(value);
+    currentBrightness = rawBrightness();
+
+    // The time between updates needed to create
+    int tmpTime = speed * 1000 / abs(brightnessTarget-currentBrightness);
+
+    // this must be bigger than zero or this will crash
+    if(tmpTime < 1) tmpTime = 1;
+    
+    brightnessTimer.begin(brightnessUpdate, tmpTime);
+    
+}
+
+static void setBrightness(int value) {
 
     Serial.printf("setBrightness %d %d\r\n",value,brightness);
 
@@ -206,8 +241,12 @@ int getBatteryRaw() {
 
 };
 
-IntervalTimer PiHardware::vibrateTimer;
+IntervalTimer PiHardware::brightnessTimer;
+volatile int PiHardware::brightnessTarget = -1;
+volatile int PiHardware::brightness = 0;
+volatile int PiHardware::currentBrightness = 0;
 
+IntervalTimer PiHardware::vibrateTimer;
 bool PiHardware::vibrateState = false;
 
 #undef db
