@@ -1072,6 +1072,14 @@ void PiScreen::printNumF(double num, byte dec, int x, int y, char divider, int l
     print(st,x,y);
 }
 
+void PiScreen::_convert_float(char *buf, double num, int width, byte prec)
+{
+	char format[10];
+	
+	sprintf(format, "%%%i.%if", width, prec);
+	sprintf(buf, format, num);
+}
+
 void PiScreen::setFont(uint8_t* font) {
 
     cfont.font     = font;
