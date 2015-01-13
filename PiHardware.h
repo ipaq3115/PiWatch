@@ -124,16 +124,15 @@ public:
 
 void powerDown() {
 
+    // Turn power off
     digitalWrite(PIN::SYSTEM_POWER, LOW);
     
-    while(true) {
+    // Give the system time to go down
+    delay(1000);
     
-        if(Serial) Serial.println("powered down");
+    // Turn power on because if we are here we are clearly still ticking and something has gone wrong
+    digitalWrite(PIN::SYSTEM_POWER, HIGH);
     
-        delay(1000);
-    
-    }
-
 }
 
 void vibrate(int millisTime) {
