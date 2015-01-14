@@ -2550,6 +2550,8 @@ void PiScreen::printRawBitmap24(image_info * info,int frame) {
 
 void PiScreen::printPartialRawBitmap16(image_info * info,int frame) {
 
+    Serial.printf("printPartialRawBitmap16 x %d y %d frame %d x1 %d y1 %d x2 %d y2 %d\r\n",info->x,info->y,frame,info->x1,info->y1,info->x2,info->y2);
+
     // Bytes of color per pixel this is the 565 format
     int const dataBytes = 2;
 
@@ -2568,7 +2570,7 @@ void PiScreen::printPartialRawBitmap16(image_info * info,int frame) {
     int windowWidthBytes = (info->x2 - info->x1 + 1) * dataBytes;
     
     // The start of the image
-    int imageStart = info->file_start + frame * dataBytes;
+    int imageStart = info->file_start + frame * info->width * info->height * dataBytes;
     
     // Offset in the x direction
     imageStart += info->x1 * dataBytes;
