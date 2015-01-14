@@ -88,7 +88,8 @@ static int rawBrightness() {
 static int rawBrightness(int tmpBrightness) {
 
     int actualBrightness = 255.0 * (float)tmpBrightness/100.0;
-    if(actualBrightness < 10) actualBrightness = 10;
+    if(actualBrightness < 0) actualBrightness = 0;
+    // if(actualBrightness < 10) actualBrightness = 10;
     // analogWrite(PIN::LCD_BACKLIGHT, actualBrightness);
 
     return actualBrightness;
