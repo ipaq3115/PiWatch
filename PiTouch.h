@@ -3,7 +3,8 @@
 #ifndef PITOUCH_
 #define PITOUCH_
 
-#include "Arduino.h"
+#include <Arduino.h>
+#include <LowPower_Teensy3.h>
 
 const uint8_t pin2tsi[] = {
 //0    1    2    3    4    5    6    7    8    9
@@ -77,7 +78,7 @@ class PiTouch {
 
 private:
 
-static IntervalTimer primaryTimer;
+static IntervalTimer_LP primaryTimer;
 
 volatile static int rotation;
 
@@ -686,7 +687,7 @@ static void loop() {
 
 volatile int PiTouch::rotation = 0;
 
-IntervalTimer PiTouch::primaryTimer;
+IntervalTimer_LP PiTouch::primaryTimer;
 
 // Tracks the state of the the current touch read index
 volatile uint8_t    PiTouch::state = 0;
