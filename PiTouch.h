@@ -179,6 +179,10 @@ static void touchInit(void (*callbackTmp)(int,int,int,int)) {
 
 static void restartTouch() {
 
+    primaryTimer.end();
+
+    TSI0_GENCS = 0;
+
     SIM_SCGC5 |= SIM_SCGC5_TSI;
     
     for(int i=0;i<PI_TOUCH_PIN_TOTAL;i++) {
@@ -214,6 +218,8 @@ static void restartTouch() {
 static void touchEnd() {
 
     primaryTimer.end();
+
+    TSI0_GENCS = 0;
 
 }
 
