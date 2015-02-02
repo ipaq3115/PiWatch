@@ -1,10 +1,10 @@
 /*
-  
-  This is a specialized library meant for running the R61505v display driver found 
-  in 220 x 220 round displays and is mostly based on the UTFT library by Henning 
+
+  This is a specialized library meant for running the R61505v display driver found
+  in 220 x 220 round displays and is mostly based on the UTFT library by Henning
   Karlsen, Support for other displays has been removed and additional functions have
   been added.
-  
+
 */
 
 #ifndef PiScreen_
@@ -14,7 +14,7 @@
 // #define PORT_SHUFFLE
 
 // Testing out using with the 328
-// #define USE_328
+#define USE_328
 
 // Uncomment this line to use sdfat instead of the normal Arduino SD library
 #define USE_SDFAT
@@ -51,7 +51,7 @@
 
     #define swap(type, i, j) {type t = i; i = j; j = t;}
 
-    #define fontbyte(x) pgm_read_byte(&cfont.font[x])  
+    #define fontbyte(x) pgm_read_byte(&cfont.font[x])
 
     #define regtype volatile uint8_t
     #define regsize uint8_t
@@ -69,7 +69,7 @@
 
     #define swap(type, i, j) {type t = i; i = j; j = t;}
 
-    #define fontbyte(x) cfont.font[x]  
+    #define fontbyte(x) cfont.font[x]
 
     #define pgm_read_word(data) *data
     #define pgm_read_byte(data) *data
@@ -162,21 +162,21 @@ enum class imagetype : byte {
 #endif
 
 struct image_info {
-    
+
     // Position of the top left corner of the image
     int x;
     int y;
-    
+
     // Dimenisons
     int width;
     int height;
-    
+
     // Bounds, these determine which part of the image to actually print
     int x1;
     int y1;
     int x2;
     int y2;
-    
+
     int frames;
     int frame_delay;
     int file_start;
@@ -220,9 +220,9 @@ int const BITMAP_LINES_TO_BUFFER = 10;
 class PiScreen {
 
     public:
-    
+
         PiScreen();
-        
+
         static void     InitLCD(byte orientation = LANDSCAPE);
         static void     clrScr();
         void            drawPixel(int x, int y);
@@ -238,12 +238,12 @@ class PiScreen {
         static void     setColor(byte r, byte g, byte b);
         static void     setColor(word color);
         uint16_t        RGBto565(byte r, byte g, byte b) {
-        
+
             byte thi = ((r & 248) | g >> 5);
             byte tlo = ((g & 28) << 3 | b >> 3);
 
             return (thi << 8) + tlo;
-            
+
         }
         word            getColor();
         static void     setBackColor(byte r, byte g, byte b);
@@ -264,10 +264,10 @@ class PiScreen {
         int             getDisplayYSize();
         void            setLcdOrientation(int tmpOrient) { orient = tmpOrient; setEntryMode(TOP_LEFT); }
         int             getLcdOrientation() { return orient; }
-        
+
         int backX,backY,backImageStart,backWidth,backHeight,backBytes;
         SdFile backgroundImageFile;
-        
+
         image_info backgroundInfo;
 
         bool loadImage(char * filename,image_info * info);
@@ -277,18 +277,18 @@ class PiScreen {
         void setBackground(char * filename,int x,int y);
         void clrBackground();
         void printBackground();
-        
+
         bool printImage(char * filename,int x,int y,int frame = 0);
         bool printImage(image_info * info,int frame = 0);
         bool printImage(image_info * info,int x1,int y1,int x2,int y2) { printImage(info,0,x1,y1,x2,y2); }
         bool printImage(image_info * info,int frame,int x1,int y1,int x2,int y2);
-        
+
         void mergeImages(SdFile * newFile,SdFile * backFile,SdFile * frontFile,int x,int y,int frame);
 
-        
-        void printBitmap(SdFile tmpFile,int x,int y); 
-        void printBitmap(SdFile tmpFile,int x,int y,int imageXa,int imageYa,int imageXb,int imageYb); 
-        void printBitmap(SdFile tmpFile,int x,int y,bool partialPrint,int imageXa,int imageYa,int imageXb,int imageYb,bool isbackground); 
+
+        void printBitmap(SdFile tmpFile,int x,int y);
+        void printBitmap(SdFile tmpFile,int x,int y,int imageXa,int imageYa,int imageXb,int imageYb);
+        void printBitmap(SdFile tmpFile,int x,int y,bool partialPrint,int imageXa,int imageYa,int imageXb,int imageYb,bool isbackground);
 
 
         int  loadVideo(SdFile tmpFile,int x,int y);
@@ -302,29 +302,29 @@ class PiScreen {
             int imageStart,int x,int y,int imageWidth,int imageHeight,
             int imageStartBack,int xBack,int yBack,int imageWidthBack,int imageHeightBack,
             int imageXa,int imageYa,int imageXb,int imageYb);
-            
-        void printRaw(SdFile tmpFile,int x,int y); 
-        void printRaw(SdFile tmpFile,int x,int y,int frame); 
-        void printRaw(SdFile tmpFile,int x,int y,int frame,int imageXa,int imageYa,int imageXb,int imageYb,bool inverse = false); 
-        void printRaw(SdFile tmpFile,int x,int y,int frame,bool partialPrint,bool inverse,int imageXa,int imageYa,int imageXb,int imageYb); 
-        
+
+        void printRaw(SdFile tmpFile,int x,int y);
+        void printRaw(SdFile tmpFile,int x,int y,int frame);
+        void printRaw(SdFile tmpFile,int x,int y,int frame,int imageXa,int imageYa,int imageXb,int imageYb,bool inverse = false);
+        void printRaw(SdFile tmpFile,int x,int y,int frame,bool partialPrint,bool inverse,int imageXa,int imageYa,int imageXb,int imageYb);
+
         void printErrorImage(int x1,int y1);
         void printErrorImage(int x1,int y1,int frame);
         void printErrorImage(int x1,int y1,int x2,int y2);
         void printErrorImage(int x1,int y1,int x2,int y2,int frame);
 
-        void printRawBitmap16(image_info * info,int frame); 
+        void printRawBitmap16(image_info * info,int frame);
         void printRawBitmap24(image_info * info,int frame);
-        
-        void printPartialRawBitmap16(image_info * info,int frame); 
+
+        void printPartialRawBitmap16(image_info * info,int frame);
         void printPartialRawBitmap24(image_info * info,int frame);
-        
-        void printBitmap16(image_info * info); 
-        void printBitmap24(image_info * info); 
-        void printBitmap32(image_info * info); 
-        
+
+        void printBitmap16(image_info * info);
+        void printBitmap24(image_info * info);
+        void printBitmap32(image_info * info);
+
         void printPartialBitmap16(SdFile tempFile,int imageStart,int x,int y,int imageWidth,int imageHeight,int imageXa,int imageYa,int imageXb,int imageYb);
-        
+
 
 
     // protected:
@@ -357,18 +357,18 @@ class PiScreen {
         void _set_direction_registers();
         static void _fast_fill_8(int ch, long pix);
         void _convert_float(char *buf, double num, int width, byte prec);
-        
+
         // static bool D;
         // bool D = true;
         #ifndef USE_328
         int const BITMAP_LINES_TO_BUFFER = 90;
         #endif
         // int const BITMAP_LINES_TO_BUFFER = 113;
-        
+
         int strMatch(char* mystring,char* searchstring);
         int strLength(char* string);
-        
-        
+
+
         #ifndef USE_328
         static int const BUFFER_SIZE = 35000;
         // static int const BUFFER_SIZE = 40000;
@@ -376,7 +376,7 @@ class PiScreen {
         static int const BUFFER_SIZE = 500;
         #endif
         byte readBuffer[BUFFER_SIZE];
-        
+
         // Storing variables for a loaded video so that frames can just be pulled
         SdFile video;
         #ifndef USE_328
@@ -385,11 +385,11 @@ class PiScreen {
         bool videoLoaded;
         #endif
         int videoStart,videoX,videoY,videoW,videoH,videoFrames;
-        
+
         // saving the current info about the background image
         SdFile backgroundFile;
         int background_x,background_y;
-        
+
 };
 
 // bool PiScreen::D = true;
