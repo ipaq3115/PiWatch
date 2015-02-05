@@ -17,7 +17,7 @@
 #define USE_328
 
 // Uncomment this line to use sdfat instead of the normal Arduino SD library
-#define USE_SDFAT
+// #define USE_SDFAT
 
 #ifdef USE_SDFAT
     #include <SdFat.h>

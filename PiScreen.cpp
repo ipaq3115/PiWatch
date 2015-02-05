@@ -1444,10 +1444,21 @@ void PiScreen::printBackground() {
 bool PiScreen::loadImage(char * filename,image_info * info) {
 
     // Close the file if it's already open
-    if(info->file.isOpen()) info->file.close();
+    #ifdef USE_SDFAT
+        if(info->file.isOpen()) info->file.close();
+    #else
+        if(info->file) info->file.close();
+    #endif
+
 
     // Open the file
-    if(!info->file.open(filename,O_READ)) {
+    #ifdef USE_SDFAT
+        if(!info->file.open(filename,O_READ)) {
+    #else
+        info->file = SD.open(filename);
+        if(!info->file) {
+    #endif
+
 
         #ifdef db
             db.printf("PiScreen::loadImage couldn't open %d\r\n",filename);
@@ -1537,26 +1548,24 @@ bool PiScreen::printImage(char * filename,int x,int y,int frame) {
 
     for(int i=0;i<=strlen(filename);i++) img.filename[i] = filename[i];
 
+    #ifdef USE_SDFAT
+        if(!img.file.open(filename,O_READ)) {
+    #else
+        img.file = SD.open(filename);
+        if(!backgroundInfo.file) {
+    #endif
 
+            #ifdef db
+                db.printf("printImage: Couldn't open %s\r\n",filename);
+            #endif
 
-#ifdef USE_SDFAT
-    if(!img.file.open(filename,O_READ)) {
-#else
-    img.file = SD.open(filename);
-    if(!backgroundInfo.file) {
-#endif
+            return false;
 
-        #ifdef db
-            db.printf("printImage: Couldn't open %s\r\n",filename);
-        #endif
-
-        return false;
-
-#ifdef USE_SDFAT
-    }
-#else
-    }
-#endif
+    #ifdef USE_SDFAT
+        }
+    #else
+        }
+    #endif
 
 
     loadHeader(&img);
