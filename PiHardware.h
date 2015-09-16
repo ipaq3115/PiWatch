@@ -126,13 +126,14 @@ public:
 void powerDown() {
 
     // Turn power off
+    pinMode(PIN::SYSTEM_POWER, OUTPUT);
     digitalWrite(PIN::SYSTEM_POWER, LOW);
     
-    // Give the system time to go down
-    delay(1000);
-    
-    // Turn power on because if we are here we are clearly still ticking and something has gone wrong
-    digitalWrite(PIN::SYSTEM_POWER, HIGH);
+    // // Give the system time to go down
+    // delay(1000);
+    // 
+    // // Turn power on because if we are here we are clearly still ticking and something has gone wrong
+    // digitalWrite(PIN::SYSTEM_POWER, HIGH);
     
 }
 
@@ -205,7 +206,8 @@ static void setBrightness(int value) {
     if(value > 100) value = 100;
     if(value < 0) value = 0;
 
-    if(brightness != value) analogWrite(PIN::LCD_BACKLIGHT, rawBrightness(value));
+    // if(brightness != value) 
+    analogWrite(PIN::LCD_BACKLIGHT, rawBrightness(value));
 
     brightness = value;
     

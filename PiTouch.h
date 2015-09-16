@@ -156,6 +156,9 @@ static void touchInit(void (*callbackTmp)(int,int,int,int), bool _old_watch = fa
     for(int i=0;i<PI_TOUCH_PIN_TOTAL;i++) touchBufferMoving[i] = false;
 
     callback = callbackTmp;
+   
+    // Test call
+    // callback(0,0,0,0);
     
     // Setup the Touch Sense stuff on the cortex
     
@@ -204,8 +207,6 @@ static void restartTouch() {
     
     TSI0_SCANC = TSI_SCANC_REFCHRG(3) | TSI_SCANC_EXTCHRG(CURRENT);
     // TSI0_SCANC = (0xF << 24) | (0xF << 16);
-    
-
 
     touchBufferOverrun = false;
     for(int i=0;i<PI_TOUCH_PIN_TOTAL;i++) touchBufferMoving[i] = false;
@@ -219,7 +220,12 @@ static void restartTouch() {
 
     state = START_WAIT;
 
+    // return;
+    
     touchReader();
+    
+    // primaryTimer.begin(touchReader, 5);
+
 
 }
 
@@ -237,7 +243,7 @@ static void setTouchOrientation(int orient) {
     if(orient >= 0 && orient <= 3) rotation = orient * 90; 
     else rotation = 0;
 
-    DBGf("setOrientation %d\r\n",rotation);
+    // DBGf("setOrientation %d\r\n",rotation);
     
 }
 
@@ -326,7 +332,7 @@ static void calCapacitive() {
 static void touchReader() {
     
     static uint32_t   ch;
-    
+
     if(state == START_WAIT) {
         
         primaryTimer.end();
@@ -343,7 +349,7 @@ static void touchReader() {
         // send this off to keep watching for results
         state = RESULT_WAIT;
         primaryTimer.begin(touchReader, 5);
-        
+
     } else if(state == RESULT_WAIT) {
         
         // Check to see if the process is done yet
@@ -673,7 +679,7 @@ static void loop() {
             #endif
         
         }
-
+        
         while(touchBufferTotal > 0) {
         
             int tmp = touchBufferPointer - touchBufferTotal;
