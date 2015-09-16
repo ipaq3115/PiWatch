@@ -65,7 +65,7 @@ int const PI_TOUCH_PIN_TOTAL = 10;
     // const int touchPin[PI_TOUCH_PIN_TOTAL] = {25,16,17, 0, 1,32,22,23,33,15}; // Old
 // #endif
     
-const int touchPin[PI_TOUCH_PIN_TOTAL] = {17,16,33,23,22,15,25,32, 1, 0};
+volatile int touchPin[PI_TOUCH_PIN_TOTAL] = {17,16,33,23,22,15,25,32, 1, 0};
     
 // const int touchPinA[PI_TOUCH_PIN_TOTAL] = {25,16,17, 0, 1,32,22,23,33,15}; // Old
 // const int touchPinB[PI_TOUCH_PIN_TOTAL] = {17,16,33,23,22,15,25,32, 1, 0}; // New
@@ -140,10 +140,18 @@ volatile static int calValue[PI_TOUCH_PIN_TOTAL];
 
 PiTouch() { }
 
-static void touchInit(void (*callbackTmp)(int,int,int,int)) {
+static void touchInit(void (*callbackTmp)(int,int,int,int), bool _old_watch = false) {
 
     DBG("INIT");
 
+    if(_old_watch) {
+    
+        int const touchPin_old[PI_TOUCH_PIN_TOTAL] = {25,16,17, 0, 1,32,22,23,33,15}; // Old
+        
+        for(int i=0;i<PI_TOUCH_PIN_TOTAL;i++) touchPin[i] = touchPin_old[i];
+    
+    }
+    
     touchBufferOverrun = false;
     for(int i=0;i<PI_TOUCH_PIN_TOTAL;i++) touchBufferMoving[i] = false;
 

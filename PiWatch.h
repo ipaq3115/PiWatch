@@ -34,11 +34,11 @@ static void init() {
     
 }
 
-static void init(void (*tmpTouchCallback)(int,int,int,int)) {
+static void init(void (*tmpTouchCallback)(int,int,int,int), bool _old_watch = false) {
 
     init();
 
-    touchInit(tmpTouchCallback);
+    touchInit(tmpTouchCallback, _old_watch);
     
 }
 
